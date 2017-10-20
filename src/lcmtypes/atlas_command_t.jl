@@ -24,6 +24,22 @@ end
 
 fingerprint(::Type{AtlasCommandT}) = SVector(0x36, 0x60, 0xf8, 0xc2, 0x34, 0x8e, 0x35, 0x12)
 
+function check_valid(cmd::AtlasCommandT)
+    @assert length(cmd.joint_names) == cmd.num_joints
+    @assert length(cmd.position) == cmd.num_joints
+    @assert length(cmd.velocity) == cmd.num_joints
+    @assert length(cmd.effort) == cmd.num_joints
+    @assert length(cmd.k_q_p) == cmd.num_joints
+    @assert length(cmd.k_q_i) == cmd.num_joints
+    @assert length(cmd.k_qd_p) == cmd.num_joints
+    @assert length(cmd.k_f_p) == cmd.num_joints
+    @assert length(cmd.ff_qd) == cmd.num_joints
+    @assert length(cmd.ff_qd_d) == cmd.num_joints
+    @assert length(cmd.ff_f_d) == cmd.num_joints
+    @assert length(cmd.ff_const) == cmd.num_joints
+    @assert length(cmd.k_effort) == cmd.num_joints
+end
+
 function decode!(cmd::AtlasCommandT, io::IO)
     check_fingerprint(io, typeof(cmd))
     cmd.utime = decode!(cmd.utime, io)
