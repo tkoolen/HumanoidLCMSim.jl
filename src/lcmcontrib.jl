@@ -6,6 +6,8 @@ const NETWORK_BYTE_ORDER_TYPES = Union{Int8, Int16, Int32, Int64, Float32, Float
 
 abstract type LCMType end
 
+size_fields(x::LCMType) = size_fields(typeof(x))
+
 # Checks
 """
     check_valid(x::LCMType)
@@ -46,9 +48,22 @@ but regardless of whether `x` is modified, methods must return the decoded objec
 
 The default behavior is to call `decode(io, typeof(x))`.
 """
-function decode!(x, io::IO) end
 decode!(::T, io::IO) where {T} = decode(io, T)
 decode!(x, data::Vector{UInt8}) = decode!(x, IOBuffer(data)) # TODO: consider removing
+
+@generated function decode!(x::LCMType, io::IO)
+    expr = Expr(:block)
+    push!(expr.args, :(check_fingerprint(io, typeof(x))))
+    for fieldname in fieldnames(x)
+        fieldnamesym = QuoteNode(fieldname)
+        push!(expr.args, quote
+            x.$fieldname = decode!(x.$fieldname, io)
+            $fieldnamesym ∈ size_fields(x) && resize!(x)
+        end)
+    end
+    push!(expr.args, :(return x))
+    expr
+end
 
 decode(io::IO, ::Type{T}) where {T <: NETWORK_BYTE_ORDER_TYPES} = ntoh(read(io, T))
 

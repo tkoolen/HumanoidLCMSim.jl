@@ -22,7 +22,24 @@ mutable struct AtlasCommandT <: LCMType
     end
 end
 
-fingerprint(::Type{AtlasCommandT}) = SVector(0x36, 0x60, 0xf8, 0xc2, 0x34, 0x8e, 0x35, 0x12)
+Base.@pure fingerprint(::Type{AtlasCommandT}) = SVector(0x36, 0x60, 0xf8, 0xc2, 0x34, 0x8e, 0x35, 0x12)
+Base.@pure size_fields(::Type{AtlasCommandT}) = (:num_joints,)
+
+function Base.resize!(cmd::AtlasCommandT)
+    resize!(cmd.joint_names, cmd.num_joints)
+    resize!(cmd.position, cmd.num_joints)
+    resize!(cmd.velocity, cmd.num_joints)
+    resize!(cmd.effort, cmd.num_joints)
+    resize!(cmd.k_q_p, cmd.num_joints)
+    resize!(cmd.k_q_i, cmd.num_joints)
+    resize!(cmd.k_qd_p, cmd.num_joints)
+    resize!(cmd.k_f_p, cmd.num_joints)
+    resize!(cmd.ff_qd, cmd.num_joints)
+    resize!(cmd.ff_qd_d, cmd.num_joints)
+    resize!(cmd.ff_f_d, cmd.num_joints)
+    resize!(cmd.ff_const, cmd.num_joints)
+    resize!(cmd.k_effort, cmd.num_joints)
+end
 
 function check_valid(cmd::AtlasCommandT)
     @assert length(cmd.joint_names) == cmd.num_joints
@@ -38,25 +55,4 @@ function check_valid(cmd::AtlasCommandT)
     @assert length(cmd.ff_f_d) == cmd.num_joints
     @assert length(cmd.ff_const) == cmd.num_joints
     @assert length(cmd.k_effort) == cmd.num_joints
-end
-
-function decode!(cmd::AtlasCommandT, io::IO)
-    check_fingerprint(io, typeof(cmd))
-    cmd.utime = decode!(cmd.utime, io)
-    cmd.num_joints = decode!(cmd.num_joints, io)
-    resize!(cmd.joint_names, cmd.num_joints); decode!(cmd.joint_names, io)
-    resize!(cmd.position, cmd.num_joints); decode!(cmd.position, io)
-    resize!(cmd.velocity, cmd.num_joints); decode!(cmd.velocity, io)
-    resize!(cmd.effort, cmd.num_joints); decode!(cmd.effort, io)
-    resize!(cmd.k_q_p, cmd.num_joints); decode!(cmd.k_q_p, io)
-    resize!(cmd.k_q_i, cmd.num_joints); decode!(cmd.k_q_i, io)
-    resize!(cmd.k_qd_p, cmd.num_joints); decode!(cmd.k_qd_p, io)
-    resize!(cmd.k_f_p, cmd.num_joints); decode!(cmd.k_f_p, io)
-    resize!(cmd.ff_qd, cmd.num_joints); decode!(cmd.ff_qd, io)
-    resize!(cmd.ff_qd_d, cmd.num_joints); decode!(cmd.ff_qd_d, io)
-    resize!(cmd.ff_f_d, cmd.num_joints); decode!(cmd.ff_f_d, io)
-    resize!(cmd.ff_const, cmd.num_joints); decode!(cmd.ff_const, io)
-    resize!(cmd.k_effort, cmd.num_joints); decode!(cmd.k_effort, io)
-    cmd.desired_controller_period_ms = decode!(cmd.desired_controller_period_ms, io)
-    cmd
 end

@@ -33,10 +33,10 @@ end
 
 @testset "atlas_command_t" begin
     import ValkyrieLCMSim: AtlasCommandT, decode!, encode
+    cmd = AtlasCommandT()
 
     pymsg = example_atlas_command_msg()
     bytes = LCMCore.encode(pymsg)
-    cmd = AtlasCommandT()
     decode!(cmd, bytes)
 
     @test pymsg[:utime] == cmd.utime
