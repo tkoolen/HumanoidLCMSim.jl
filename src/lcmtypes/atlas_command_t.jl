@@ -1,4 +1,4 @@
-mutable struct AtlasCommandT
+mutable struct AtlasCommandT <: LCMType
     utime::Int64
     num_joints::Int32
     joint_names::Vector{String}
@@ -24,7 +24,8 @@ end
 
 fingerprint(::Type{AtlasCommandT}) = SVector(0x36, 0x60, 0xf8, 0xc2, 0x34, 0x8e, 0x35, 0x12)
 
-function decode!(cmd::AtlasCommandT, io::IOBuffer)
+function decode!(cmd::AtlasCommandT, io::IO)
+    check_fingerprint(io, typeof(cmd))
     cmd.utime = decode!(cmd.utime, io)
     cmd.num_joints = decode!(cmd.num_joints, io)
     resize!(cmd.joint_names, cmd.num_joints); decode!(cmd.joint_names, io)
@@ -43,4 +44,3 @@ function decode!(cmd::AtlasCommandT, io::IOBuffer)
     cmd.desired_controller_period_ms = decode!(cmd.desired_controller_period_ms, io)
     cmd
 end
-

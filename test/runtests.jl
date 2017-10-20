@@ -32,7 +32,7 @@ function example_atlas_command_msg(rng = Base.Random.GLOBAL_RNG)
 end
 
 @testset "atlas_command_t" begin
-    import ValkyrieLCMSim: AtlasCommandT, decode!
+    import ValkyrieLCMSim: AtlasCommandT, decode!, encode
 
     pymsg = example_atlas_command_msg()
     bytes = LCMCore.encode(pymsg)
@@ -54,4 +54,7 @@ end
     @test pymsg[:ff_const] == cmd.ff_const
     @test pymsg[:k_effort] == cmd.k_effort
     @test pymsg[:desired_controller_period_ms] == cmd.desired_controller_period_ms
+
+    bytes_back = encode(cmd)
+    @test bytes == bytes_back
 end
