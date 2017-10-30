@@ -1,18 +1,17 @@
 using ValkyrieLCMSim
 using Base.Test
+using LCMCore
 using PyLCM
 using BotCoreLCMTypes
-# using LCMCore
+using ValkyrieLCMSim.NativeBotCoreLCMTypes
+using StaticArrays
 
 function example_atlas_command_msg(rng = Base.Random.GLOBAL_RNG)
-    msg = bot_core[:atlas_command_t]()
-
     utime = 234
     num_joints = 2
-
+    msg = bot_core[:atlas_command_t]()
     msg[:utime] = utime
     msg[:num_joints] = num_joints
-
     msg[:joint_names] = [randstring(rng, rand(rng, 1 : 10)) for i = 1 : num_joints]
     msg[:position] = rand(rng, Float64, num_joints)
     msg[:velocity] = rand(rng, Float64, num_joints)
@@ -27,34 +26,38 @@ function example_atlas_command_msg(rng = Base.Random.GLOBAL_RNG)
     msg[:ff_const] = rand(rng, Float64, num_joints)
     msg[:k_effort] = rand(rng, UInt8, num_joints)
     msg[:desired_controller_period_ms] = rand(rng, UInt8)
-
     msg
 end
 
-@testset "atlas_command_t" begin
-    import ValkyrieLCMSim: AtlasCommandT, decode!, encode
-    cmd = AtlasCommandT()
+function example_force_torque_msg(rng = Base.Random.GLOBAL_RNG)
+    msg = bot_core[:force_torque_t]()
+    msg[:l_foot_force_z] = rand(rng, Float32)
+    msg[:l_foot_torque_x] = rand(rng, Float32)
+    msg[:l_foot_torque_y] = rand(rng, Float32)
+    msg[:r_foot_force_z] = rand(rng, Float32)
+    msg[:r_foot_torque_x] = rand(rng, Float32)
+    msg[:r_foot_torque_y] = rand(rng, Float32)
+    msg[:l_hand_force] = rand(rng, SVector{3, Float32})
+    msg[:l_hand_torque] = rand(rng, SVector{3, Float32})
+    msg[:r_hand_force] = rand(rng, SVector{3, Float32})
+    msg[:r_hand_torque] = rand(rng, SVector{3, Float32})
+    msg
+end
 
-    pymsg = example_atlas_command_msg()
-    bytes = LCMCore.encode(pymsg)
-    decode!(cmd, bytes)
-
-    @test pymsg[:utime] == cmd.utime
-    @test pymsg[:num_joints] == cmd.num_joints
-    @test pymsg[:position] == cmd.position
-    @test pymsg[:velocity] == cmd.velocity
-    @test pymsg[:effort] == cmd.effort
-    @test pymsg[:k_q_p] == cmd.k_q_p
-    @test pymsg[:k_q_i] == cmd.k_q_i
-    @test pymsg[:k_qd_p] == cmd.k_qd_p
-    @test pymsg[:k_f_p] == cmd.k_f_p
-    @test pymsg[:ff_qd] == cmd.ff_qd
-    @test pymsg[:ff_qd_d] == cmd.ff_qd_d
-    @test pymsg[:ff_f_d] == cmd.ff_f_d
-    @test pymsg[:ff_const] == cmd.ff_const
-    @test pymsg[:k_effort] == cmd.k_effort
-    @test pymsg[:desired_controller_period_ms] == cmd.desired_controller_period_ms
-
-    bytes_back = encode(cmd)
+function test_lcm_message(lcmtype::LCMType, pylcmtype)
+    bytes = LCMCore.encode(pylcmtype)
+    decode!(lcmtype, bytes)
+    for fieldname in fieldnames(lcmtype)
+        @test pylcmtype[fieldname] == getfield(lcmtype, fieldname)
+    end
+    bytes_back = encode(lcmtype)
     @test bytes == bytes_back
+end
+
+@testset "atlas_command_t" begin
+    test_lcm_message(NativeBotCoreLCMTypes.AtlasCommandT(), example_atlas_command_msg())
+end
+
+@testset "force_torque_t" begin
+    test_lcm_message(NativeBotCoreLCMTypes.ForceTorqueT(), example_force_torque_msg())
 end

@@ -6,9 +6,8 @@ export
 using RigidBodySim
 import DataStructures.OrderedDict
 
+include("lcmtypes/lcmtypes.jl")
 include("gains.jl")
 # include("control.jl")
-include("lcmcontrib.jl")
-include("lcmtypes/lcmtypes.jl")
 
 end # module
