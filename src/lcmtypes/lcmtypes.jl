@@ -1,5 +1,14 @@
 module NativeBotCoreLCMTypes # TODO
 
+export
+    Vector3DT,
+    QuaternionT,
+    TwistT,
+    Position3DT,
+    ForceTorqueT,
+    AtlasCommandT,
+    RobotStateT
+
 using LCMCore, StaticArrays
 
 include("vector_3d_t.jl")

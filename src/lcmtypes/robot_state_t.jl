@@ -21,7 +21,7 @@ function Base.resize!(msg::RobotStateT)
 end
 
 function LCMCore.check_valid(msg::RobotStateT)
-    @assert length(msg.num_joints) == msg.num_joints
+    @assert length(msg.joint_name) == msg.num_joints
     @assert length(msg.joint_position) == msg.num_joints
     @assert length(msg.joint_velocity) == msg.num_joints
     @assert length(msg.joint_effort) == msg.num_joints
