@@ -6,6 +6,7 @@ struct LCMController
     lcm::LCM
     robot_state_msg::RobotStateT
     atlas_command_msg::AtlasCommandT
+    encodebuffer::IOBuffer
     new_command::Condition
 end
 
@@ -19,7 +20,8 @@ function LCMController(robot_info::HumanoidRobotInfo)
     lcm = LCM()
     robot_state_msg = RobotStateT()
     atlas_command_msg = AtlasCommandT()
-    controller = LCMController(result, tprev, τprev, robot_info, lcm, robot_state_msg, atlas_command_msg, Condition())
+    encodebuffer = IOBuffer(false, true)
+    controller = LCMController(result, tprev, τprev, robot_info, lcm, robot_state_msg, atlas_command_msg, encodebuffer, Condition())
 
     robot_state_msg.num_joints = count(j -> num_positions(j) == 1, tree_joints(mechanism))
     for joint in tree_joints(mechanism)
@@ -139,7 +141,7 @@ end
 function compute_torques!(τ::AbstractVector, Δt::Number, state::MechanismState, τprev::AbstractVector, msg::AtlasCommandT, robot_info::HumanoidRobotInfo)
     τ[:] = 0
     for i = 1 : msg.num_joints
-        joint = findjoint(robot_info, name_to_joint[msg.joint_names[i]])
+        joint = findjoint(robot_info, msg.joint_names[i])
         velocity_ind = range_to_ind(velocity_range(state, joint))
         gains = LowLevelJointGains(
             msg.k_q_p[i],
@@ -159,7 +161,8 @@ end
 
 function (controller::LCMController)(τ::AbstractVector, t::Number, state::MechanismState)
     set!(controller.robot_state_msg, controller.result, controller.robot_info, controller.τprev, t, state)
-    publish(controller.lcm, "EST_ROBOT_STATE", controller.robot_state_msg)
+    encode(controller.encodebuffer, controller.robot_state_msg)
+    publish(controller.lcm, "EST_ROBOT_STATE", take!(controller.encodebuffer))
     # wait(controller.new_command)
     compute_torques!(τ, controller.tprev[] - t, state, controller.τprev, controller.atlas_command_msg, controller.robot_info)
     controller.tprev[] = t
