@@ -1,3 +1,5 @@
+__precompile__()
+
 module ValkyrieLCMSim
 
 export
@@ -5,9 +7,14 @@ export
     LCMController
 
 using RigidBodySim
+using RigidBodyDynamics
+using RigidBodyTreeInspector
+using OrdinaryDiffEq
+using DiffEqCallbacks
 using Rotations
 using LCMCore
 using BufferedStreams
+
 import RigidBodyDynamics: contact_dynamics!, contact_wrench
 
 include("lcmtypes/lcmtypes.jl")
