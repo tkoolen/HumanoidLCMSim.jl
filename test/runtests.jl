@@ -1,9 +1,9 @@
-using ValkyrieLCMSim
+using HumanoidLCMSim
 using Base.Test
 using LCMCore
 using PyLCM
 using BotCoreLCMTypes
-using ValkyrieLCMSim.NativeBotCoreLCMTypes
+using HumanoidLCMSim.NativeBotCoreLCMTypes
 using StaticArrays
 
 function example_atlas_command_msg(rng = Base.Random.GLOBAL_RNG)

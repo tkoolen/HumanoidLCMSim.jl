@@ -1,6 +1,6 @@
 __precompile__()
 
-module ValkyrieLCMSim
+module HumanoidLCMSim
 
 export
     HumanoidRobotInfo,
