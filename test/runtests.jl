@@ -1,12 +1,24 @@
-using HumanoidLCMSim
-using Base.Test
+module HumanoidLCMSimTests
+
+using RigidBodySim
+using RigidBodyDynamics
+using RigidBodyTreeInspector
+using OrdinaryDiffEq
+using DiffEqCallbacks
 using LCMCore
 using PyLCM
 using BotCoreLCMTypes
-using HumanoidLCMSim.NativeBotCoreLCMTypes
 using StaticArrays
 
-function example_atlas_command_msg(rng = Base.Random.GLOBAL_RNG)
+using Base.Test
+
+using HumanoidLCMSim
+using HumanoidLCMSim.NativeBotCoreLCMTypes
+
+
+rand_python_msg(::Type{T}) where {T <: LCMType} = rand_python_msg(Base.Random.GLOBAL_RNG, T)
+
+function rand_python_msg(rng::AbstractRNG, ::Type{AtlasCommandT})
     utime = 234
     num_joints = 2
     msg = bot_core[:atlas_command_t]()
@@ -29,7 +41,7 @@ function example_atlas_command_msg(rng = Base.Random.GLOBAL_RNG)
     msg
 end
 
-function example_force_torque_msg(rng = Base.Random.GLOBAL_RNG)
+function rand_python_msg(rng::AbstractRNG, ::Type{ForceTorqueT})
     msg = bot_core[:force_torque_t]()
     msg[:l_foot_force_z] = rand(rng, Float32)
     msg[:l_foot_torque_x] = rand(rng, Float32)
@@ -44,7 +56,9 @@ function example_force_torque_msg(rng = Base.Random.GLOBAL_RNG)
     msg
 end
 
-function test_lcm_message(lcmtype::LCMType, pylcmtype)
+function test_lcm_message(::Type{T}) where T <: LCMType
+    lcmtype = T()
+    pylcmtype = rand_python_msg(T)
     bytes = LCMCore.encode(pylcmtype)
     decode!(lcmtype, bytes)
     for fieldname in fieldnames(lcmtype)
@@ -54,10 +68,11 @@ function test_lcm_message(lcmtype::LCMType, pylcmtype)
     @test bytes == bytes_back
 end
 
-@testset "atlas_command_t" begin
-    test_lcm_message(NativeBotCoreLCMTypes.AtlasCommandT(), example_atlas_command_msg())
+@testset "LCMTypes" begin
+    # for T in names(names(HumanoidLCMSim.NativeBotCoreLCMTypes))
+    for T in (:AtlasCommandT, :ForceTorqueT)
+        @eval test_lcm_message($T)
+    end
 end
 
-@testset "force_torque_t" begin
-    test_lcm_message(NativeBotCoreLCMTypes.ForceTorqueT(), example_force_torque_msg())
-end
+end # module
