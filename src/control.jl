@@ -56,10 +56,12 @@ end
 range_to_ind(range) = (@assert length(range) == 1; first(range))
 
 function set!(msg::Vector3DT, trans::AbstractVector)
-    @assert length(trans) == 3
-    msg.x = trans[1]
-    msg.y = trans[2]
-    msg.z = trans[3]
+    @boundscheck checkbounds(trans, 1:3)
+    @inbounds begin
+        msg.x = trans[1]
+        msg.y = trans[2]
+        msg.z = trans[3]
+    end
     msg
 end
 
@@ -95,6 +97,7 @@ function set!(msg::ForceTorqueT, left_foot_wrench::Wrench, right_foot_wrench::Wr
     msg.l_hand_torque = angular(left_hand_wrench)
     msg.r_hand_force = linear(right_hand_wrench)
     msg.r_hand_torque = angular(right_hand_wrench)
+    msg
 end
 
 function contact_wrench_in_body_frame(state::MechanismState, result::DynamicsResult, body::RigidBody)
@@ -168,4 +171,11 @@ function (controller::LCMController)(τ::AbstractVector, t::Number, state::Mecha
     controller.tprev[] = t
     controller.τprev[:] = τ
     τ
+end
+
+function RigidBodySim.PeriodicController(Δt::Number, controller::LCMController) # TODO: switch order?
+    initialize = let controller = controller
+        (c, t, u, integrator) -> initialize!(controller)
+    end
+    PeriodicController(zeros(controller.τprev), Δt, controller; initialize = initialize)
 end
