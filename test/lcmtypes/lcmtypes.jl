@@ -1,10 +1,5 @@
 module NativeBotCoreLCMTypesTests
 
-# using RigidBodySim
-# using RigidBodyDynamics
-# using RigidBodyTreeInspector
-# using OrdinaryDiffEq
-# using DiffEqCallbacks
 using LCMCore
 using PyLCM
 using BotCoreLCMTypes
