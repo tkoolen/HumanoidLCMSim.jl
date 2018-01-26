@@ -26,10 +26,11 @@ function LCMController(robot_info::HumanoidRobotInfo;
     encodebuffer = IOBuffer(false, true)
     controller = LCMController(result, tprev, τprev, robot_info, lcm, robot_state_channel, robot_state_msg, atlas_command_msg, encodebuffer, Ref(false))
 
-    robot_state_msg.num_joints = num_actuators(robot_info)
-    for actuator in actuators(robot_info)
-        push!(robot_state_msg.joint_name, actuator.name)
+    for joint in tree_joints(mechanism)
+        num_velocities(joint) == 1 || continue
+        push!(robot_state_msg.joint_name, string(joint))
     end
+    robot_state_msg.num_joints = length(robot_state_msg.joint_name)
     resize!(robot_state_msg)
 
     subscribe(lcm, robot_command_channel, (channel, data) -> handle_robot_command_msg(controller, data))
@@ -103,7 +104,7 @@ end
 
 function set!(msg::RobotStateT, result::DynamicsResult, robot_info::HumanoidRobotInfo, τprev::AbstractVector, t::Number, state::MechanismState)
     # time
-    msg.utime = floor(Int, t * 1e3)
+    msg.utime = floor(Int, t * 1e6)
 
     # pose
     floating_body = robot_info.floating_body
@@ -118,12 +119,14 @@ function set!(msg::RobotStateT, result::DynamicsResult, robot_info::HumanoidRobo
     set!(msg.twist, twist)
 
     # state info for actuated joints
-    for i = 1 : msg.num_joints
-        joint = findjoint(robot_info, findactuator(robot_info, msg.joint_name[i]))
+    i = 1
+    for joint in tree_joints(robot_info.mechanism)
+        num_velocities(joint) == 1 || continue
         velocity_index = range_to_ind(velocity_range(state, joint))
         msg.joint_position[i] = configuration(state, joint)[1]
         msg.joint_velocity[i] = velocity(state, joint)[1]
         msg.joint_effort[i] = τprev[velocity_index]
+        i += 1
     end
 
     # contact wrenches
@@ -162,14 +165,12 @@ function (controller::LCMController)(τ::AbstractVector, t::Number, state::Mecha
     set!(controller.robot_state_msg, controller.result, controller.robot_info, controller.τprev, t, state)
     encode(controller.encodebuffer, controller.robot_state_msg)
     bytes = take!(controller.encodebuffer)
-    firsttry = true
-    while !controller.new_command[]
-        firsttry || println("Resending robot_state_t message.")
-        publish(controller.lcm, controller.robot_state_channel, bytes)
-        handle(controller.lcm, Dates.Second(1))
-        firsttry = false
-    end
+    publish(controller.lcm, controller.robot_state_channel, bytes)
+    t == 0 && (sleep(0.5); publish(controller.lcm, controller.robot_state_channel, bytes)) # resend to work around a bug in the controller
+    handle(controller.lcm, Dates.Second(1))
+    controller.new_command[] || error("Didn't receive a command.")
     compute_torques!(τ, controller.tprev[] - t, state, controller.τprev, controller.atlas_command_msg, controller.robot_info)
+    τ .-= 0.1 .* velocity(state) # FIXME: parse damping from URDF
     controller.new_command[] = false
     controller.tprev[] = t
     controller.τprev[:] = τ

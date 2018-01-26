@@ -8,17 +8,22 @@ function parse_actuators(mechanism::Mechanism{T}, urdffile::String) where T
     @assert LightXML.name(xroot) == "robot"
 
     xml_transmissions = get_elements_by_tagname(xroot, "transmission")
-    actuatorconfig = Dict{Actuator, GenericJoint{T}}()
-    for xml_transmission in xml_transmissions
-        xml_jointref = find_element(xml_transmission, "joint")
-        jointname = attribute(xml_jointref, "name")
-        xml_actuator = find_element(xml_transmission, "actuator")
-        actuator = Actuator(attribute(xml_actuator, "name"))
-        xml_reduction = find_element(xml_actuator, "mechanicalReduction")
-        xml_reduction == nothing || @assert parse(content(xml_reduction)) == 1
-        joint = findjoint(mechanism, jointname)
-        num_velocities(joint) > 0 && (actuatorconfig[actuator] = joint)
+    actuatorconfig = OrderedDict{Actuator, GenericJoint{T}}()
+
+    for joint in tree_joints(mechanism) # order matters
+        num_velocities(joint) == 0 && continue
+        for xml_transmission in xml_transmissions
+            xml_jointref = find_element(xml_transmission, "joint")
+            if string(joint) == attribute(xml_jointref, "name")
+                xml_actuator = find_element(xml_transmission, "actuator")
+                xml_reduction = find_element(xml_actuator, "mechanicalReduction")
+                xml_reduction == nothing || @assert parse(content(xml_reduction)) == 1
+                actuator = Actuator(attribute(xml_actuator, "name"))
+                actuatorconfig[actuator] = joint
+            end
+        end
     end
+
     actuatorconfig
 end
 
@@ -28,13 +33,13 @@ struct HumanoidRobotInfo{T}
     hands::Dict{Symbol, RigidBody{T}}
     floating_body::RigidBody{T}
     world_aligned_floating_body_frame::CartesianFrame3D
-    actuatorconfig::Dict{Actuator, GenericJoint{T}}
+    actuatorconfig::OrderedDict{Actuator, GenericJoint{T}}
 
     function HumanoidRobotInfo(
             mechanism::Mechanism{T},
             feet::Associative{Symbol, RigidBody{T}},
             hands::Associative{Symbol, RigidBody{T}},
-            actuatorconfig::Associative{Actuator, GenericJoint{T}}) where {T}
+            actuatorconfig::OrderedDict{Actuator, GenericJoint{T}}) where {T}
         sides = [:left, :right]
         @assert isempty(setdiff(keys(feet), sides))
         @assert isempty(setdiff(keys(hands), sides))
