@@ -4,7 +4,8 @@ module HumanoidLCMSim
 
 export
     HumanoidRobotInfo,
-    LCMController
+    LCMController,
+    parse_actuators
 
 using RigidBodySim
 using RigidBodyDynamics
@@ -14,6 +15,7 @@ using DiffEqCallbacks
 using Rotations
 using LCMCore
 using BufferedStreams
+using LightXML
 
 import RigidBodyDynamics: contact_dynamics!, contact_wrench
 
