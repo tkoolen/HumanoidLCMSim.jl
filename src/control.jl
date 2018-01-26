@@ -161,12 +161,21 @@ function compute_torques!(τ::AbstractVector, Δt::Number, state::MechanismState
     τ
 end
 
-function (controller::LCMController)(τ::AbstractVector, t::Number, state::MechanismState)
+function publish_robot_state(controller::LCMController, t::Number, state::MechanismState)
     set!(controller.robot_state_msg, controller.result, controller.robot_info, controller.τprev, t, state)
     encode(controller.encodebuffer, controller.robot_state_msg)
     bytes = take!(controller.encodebuffer)
     publish(controller.lcm, controller.robot_state_channel, bytes)
-    t == 0 && (sleep(0.5); publish(controller.lcm, controller.robot_state_channel, bytes)) # resend to work around a bug in the controller
+end
+
+function (controller::LCMController)(τ::AbstractVector, t::Number, state::MechanismState)
+    # send state info on first tick to get things started
+    if t == 0 # TODO: consider creating a separate flag in the controller for doing this
+        publish_robot_state(controller, t, state)
+        sleep(0.5); publish_robot_state(controller, t, state) # send a second time to work around a bug in the controller
+    end
+
+    # process command
     handle(controller.lcm, Dates.Second(1))
     controller.new_command[] || error("Didn't receive a command.")
     compute_torques!(τ, controller.tprev[] - t, state, controller.τprev, controller.atlas_command_msg, controller.robot_info)
@@ -174,6 +183,9 @@ function (controller::LCMController)(τ::AbstractVector, t::Number, state::Mecha
     controller.new_command[] = false
     controller.tprev[] = t
     controller.τprev[:] = τ
+
+    # send state info
+    publish_robot_state(controller, t, state)
     τ
 end
 
