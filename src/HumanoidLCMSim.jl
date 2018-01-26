@@ -16,6 +16,7 @@ using Rotations
 using LCMCore
 using BufferedStreams
 using LightXML
+import DataStructures: OrderedDict
 
 import RigidBodyDynamics: contact_dynamics!, contact_wrench
 
