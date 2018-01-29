@@ -8,7 +8,7 @@ struct LCMController
     robot_state_msg::RobotStateT
     atlas_command_msg::AtlasCommandT
     encodebuffer::IOBuffer
-    new_command::Base.RefValue{Bool}
+    new_command::Channel{Bool}
 end
 
 # TODO: reduce cost of encoding
@@ -24,7 +24,8 @@ function LCMController(robot_info::HumanoidRobotInfo;
     robot_state_msg = RobotStateT()
     atlas_command_msg = AtlasCommandT()
     encodebuffer = IOBuffer(false, true)
-    controller = LCMController(result, tprev, τprev, robot_info, lcm, robot_state_channel, robot_state_msg, atlas_command_msg, encodebuffer, Ref(false))
+    new_command = Channel{Bool}(1)
+    controller = LCMController(result, tprev, τprev, robot_info, lcm, robot_state_channel, robot_state_msg, atlas_command_msg, encodebuffer, new_command)
 
     for joint in tree_joints(mechanism)
         num_velocities(joint) == 1 || continue
@@ -34,6 +35,9 @@ function LCMController(robot_info::HumanoidRobotInfo;
     resize!(robot_state_msg)
 
     subscribe(lcm, robot_command_channel, (channel, data) -> handle_robot_command_msg(controller, data))
+    @async while true
+        handle(lcm)
+    end
 
     controller
 end
@@ -48,7 +52,7 @@ function handle_robot_command_msg(controller::LCMController, data::Vector{UInt8}
     io = BufferedInputStream(data)
     msg = controller.atlas_command_msg
     decode!(msg, io)
-    controller.new_command[] = true
+    put!(controller.new_command, true)
 end
 
 range_to_ind(range) = (@assert length(range) == 1; first(range))
@@ -172,15 +176,14 @@ function (controller::LCMController)(τ::AbstractVector, t::Number, state::Mecha
     # send state info on first tick to get things started
     if t == 0 # TODO: consider creating a separate flag in the controller for doing this
         publish_robot_state(controller, t, state)
-        sleep(0.5); publish_robot_state(controller, t, state) # send a second time to work around a bug in the controller
+        sleep(1e-1)
+        publish_robot_state(controller, t, state) # send a second time to work around a bug in the controller
     end
 
     # process command
-    handle(controller.lcm, Dates.Second(1))
-    controller.new_command[] || error("Didn't receive a command.")
+    take!(controller.new_command)
     compute_torques!(τ, controller.tprev[] - t, state, controller.τprev, controller.atlas_command_msg, controller.robot_info)
     τ .-= 0.1 .* velocity(state) # FIXME: parse damping from URDF
-    controller.new_command[] = false
     controller.tprev[] = t
     controller.τprev[:] = τ
 
