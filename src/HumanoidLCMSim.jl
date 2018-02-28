@@ -2,10 +2,16 @@ __precompile__()
 
 module HumanoidLCMSim
 
-export
+export # types
     HumanoidRobotInfo,
     LCMController,
+    Side
+
+export # functions
     parse_actuators
+
+export # submodules
+    Sides
 
 using RigidBodySim
 using RigidBodyDynamics
@@ -18,13 +24,13 @@ using BufferedStreams
 using LightXML
 import DataStructures: OrderedDict
 
-import RigidBodyDynamics: contact_dynamics!, contact_wrench
-
 include("lcmtypes/lcmtypes.jl")
+include("gains.jl")
+include("sides.jl")
 
+using .Sides
 using .NativeBotCoreLCMTypes
 
-include("gains.jl")
 include("humanoid_robot_info.jl")
 include("control.jl")
 

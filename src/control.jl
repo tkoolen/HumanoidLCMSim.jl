@@ -99,7 +99,7 @@ function set!(msg::ForceTorqueT, left_foot_wrench::Wrench, right_foot_wrench::Wr
 end
 
 function contact_wrench_in_body_frame(state::MechanismState, result::DynamicsResult, body::RigidBody)
-    transform(contact_wrench(result, body), inv(transform_to_root(state, body)))
+    transform(RigidBodyDynamics.contact_wrench(result, body), inv(transform_to_root(state, body)))
 end
 
 function set!(msg::RobotStateT, result::DynamicsResult, robot_info::HumanoidRobotInfo, τprev::AbstractVector, t::Number, state::MechanismState)
@@ -130,12 +130,12 @@ function set!(msg::RobotStateT, result::DynamicsResult, robot_info::HumanoidRobo
     end
 
     # contact wrenches
-    contact_dynamics!(result, state)
+    RigidBodyDynamics.contact_dynamics!(result, state)
     set!(msg.force_torque,
-        contact_wrench_in_body_frame(state, result, robot_info.feet[:left]),
-        contact_wrench_in_body_frame(state, result, robot_info.feet[:right]),
-        contact_wrench_in_body_frame(state, result, robot_info.hands[:left]),
-        contact_wrench_in_body_frame(state, result, robot_info.hands[:right]))
+        contact_wrench_in_body_frame(state, result, robot_info.feet[Sides.left]),
+        contact_wrench_in_body_frame(state, result, robot_info.feet[Sides.right]),
+        contact_wrench_in_body_frame(state, result, robot_info.hands[Sides.left]),
+        contact_wrench_in_body_frame(state, result, robot_info.hands[Sides.right]))
 
     msg
 end
@@ -143,8 +143,8 @@ end
 function compute_torques!(τ::AbstractVector, Δt::Number, state::MechanismState, τprev::AbstractVector, msg::AtlasCommandT, robot_info::HumanoidRobotInfo)
     τ[:] = 0
     for i = 1 : msg.num_joints
-        joint = findjoint(robot_info, findactuator(robot_info, msg.joint_names[i]))
-        velocity_ind = range_to_ind(velocity_range(state, joint))
+        jointid = findjointid(robot_info, findactuator(robot_info, msg.joint_names[i]))
+        velocity_ind = range_to_ind(velocity_range(state, jointid))
         gains = LowLevelJointGains(
             msg.k_q_p[i],
             msg.k_q_i[i],
@@ -154,7 +154,7 @@ function compute_torques!(τ::AbstractVector, Δt::Number, state::MechanismState
             msg.ff_qd_d[i],
             msg.ff_f_d[i],
             msg.ff_const[i])
-        joint_state = JointState(configuration(state, joint)[1], velocity(state, joint)[1], τprev[velocity_ind])
+        joint_state = JointState(configuration(state, jointid)[1], velocity(state, jointid)[1], τprev[velocity_ind])
         joint_state_des = JointState(msg.position[i], msg.velocity[i], msg.effort[i])
         τ[velocity_ind] = command_effort(gains, joint_state, joint_state_des, Δt)
     end
