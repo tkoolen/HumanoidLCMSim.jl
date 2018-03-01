@@ -8,7 +8,8 @@ export # types
     Side
 
 export # functions
-    parse_actuators
+    parse_actuators,
+    old_actuator_config
 
 export # submodules
     Sides
