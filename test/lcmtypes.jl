@@ -1,5 +1,6 @@
 module NativeBotCoreLCMTypesTests
 
+using Compat
 using LCMCore
 using PyLCM
 using BotCoreLCMTypes
@@ -8,7 +9,7 @@ using Rotations
 
 using HumanoidLCMSim
 using HumanoidLCMSim.NativeBotCoreLCMTypes
-using Base.Test
+using Compat.Test
 
 
 rand_python_msg(::Type{T}) where {T <: LCMType} = rand_python_msg(Base.Random.GLOBAL_RNG, T)

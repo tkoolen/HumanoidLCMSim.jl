@@ -1,5 +1,7 @@
 module HumanoidLCMSimTests
 
-include("lcmtypes/lcmtypes.jl")
+include("sides.jl")
+include("lcmtypes.jl")
+# include("notebooks.jl")
 
 end # module

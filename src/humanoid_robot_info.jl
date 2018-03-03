@@ -8,7 +8,7 @@ function parse_actuators(mechanism::Mechanism{T}, urdffile::String) where T
     @assert LightXML.name(xroot) == "robot"
 
     xml_transmissions = get_elements_by_tagname(xroot, "transmission")
-    actuatorconfig = OrderedDict{Actuator, GenericJoint{T}}()
+    actuatorconfig = OrderedDict{Actuator, JointID}()
 
     for joint in tree_joints(mechanism) # order matters
         num_velocities(joint) == 0 && continue
@@ -19,7 +19,7 @@ function parse_actuators(mechanism::Mechanism{T}, urdffile::String) where T
                 xml_reduction = find_element(xml_actuator, "mechanicalReduction")
                 xml_reduction == nothing || @assert parse(content(xml_reduction)) == 1
                 actuator = Actuator(attribute(xml_actuator, "name"))
-                actuatorconfig[actuator] = joint
+                actuatorconfig[actuator] = JointID(joint)
             end
         end
     end
@@ -29,18 +29,18 @@ end
 
 struct HumanoidRobotInfo{T}
     mechanism::Mechanism{T}
-    feet::Dict{Symbol, RigidBody{T}}
-    hands::Dict{Symbol, RigidBody{T}}
+    feet::Dict{Side, RigidBody{T}}
+    hands::Dict{Side, RigidBody{T}}
     floating_body::RigidBody{T}
     world_aligned_floating_body_frame::CartesianFrame3D
-    actuatorconfig::OrderedDict{Actuator, GenericJoint{T}}
+    actuatorconfig::OrderedDict{Actuator, JointID}
 
     function HumanoidRobotInfo(
             mechanism::Mechanism{T},
-            feet::Associative{Symbol, RigidBody{T}},
-            hands::Associative{Symbol, RigidBody{T}},
-            actuatorconfig::OrderedDict{Actuator, GenericJoint{T}}) where {T}
-        sides = [:left, :right]
+            feet::Associative{Side, RigidBody{T}},
+            hands::Associative{Side, RigidBody{T}},
+            actuatorconfig::OrderedDict{Actuator, JointID}) where {T}
+        sides = instances(Side)
         @assert isempty(setdiff(keys(feet), sides))
         @assert isempty(setdiff(keys(hands), sides))
         floating_joints = filter(isfloating, tree_joints(mechanism))
@@ -61,4 +61,4 @@ function findactuator(info::HumanoidRobotInfo, name::String)
     throw(ArgumentError("Actuator with name \"$name\" not found"))
 end
 
-RigidBodyDynamics.findjoint(info::HumanoidRobotInfo, actuator::Actuator) = info.actuatorconfig[actuator]
+findjointid(info::HumanoidRobotInfo, actuator::Actuator) = info.actuatorconfig[actuator]
