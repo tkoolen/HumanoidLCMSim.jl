@@ -99,6 +99,12 @@ function rand_python_msg(rng::AbstractRNG, ::Type{RobotStateT})
     msg
 end
 
+function rand_python_msg(rng::AbstractRNG, ::Type{UtimeT})
+    msg = bot_core[:utime_t]()
+    msg[:utime] = rand(rng, Int64)
+    msg
+end
+
 function Base.:(==)(pylcmtype::PyCall.PyObject, lcmtype::LCMType)
     for fieldname in fieldnames(lcmtype)
         pylcmtype[fieldname] == getfield(lcmtype, fieldname) || return false
