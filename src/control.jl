@@ -168,6 +168,9 @@ function publish_robot_state(controller::LCMController, t::Number, state::Mechan
     publish(controller.lcm, controller.robot_state_channel, bytes)
 end
 
+struct NoCommandError <: Exception end
+Base.showerror(io::IO, e::NoCommandError) = print(io, "Didn't receive a robot_command_t message.")
+
 function (controller::LCMController)(τ::AbstractVector, t::Number, state::MechanismState)
     # send state info on first tick to get things started
     if t == 0 # TODO: consider creating a separate flag in the controller for doing this
@@ -177,7 +180,7 @@ function (controller::LCMController)(τ::AbstractVector, t::Number, state::Mecha
 
     # process command
     handle(controller.lcm, Dates.Second(1))
-    controller.new_command[] || error("Didn't receive a command.")
+    controller.new_command[] || throw(NoCommandError())
     compute_torques!(τ, controller.tprev[] - t, state, controller.τprev, controller.atlas_command_msg, controller.robot_info)
     τ .-= 0.1 .* velocity(state) # FIXME: parse damping from URDF
     controller.new_command[] = false

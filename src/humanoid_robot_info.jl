@@ -27,10 +27,6 @@ function parse_actuators(mechanism::Mechanism{T}, urdffile::String) where T
     actuatorconfig
 end
 
-function old_actuator_config(mechanism::Mechanism)
-    OrderedDict{Actuator, JointID}(Actuator(string(j)) => JointID(j) for j in tree_joints(mechanism) if num_positions(j) == 1)
-end
-
 struct HumanoidRobotInfo{T}
     mechanism::Mechanism{T}
     feet::Dict{Side, RigidBody{T}}

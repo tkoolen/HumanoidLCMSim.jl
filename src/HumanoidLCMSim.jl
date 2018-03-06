@@ -5,6 +5,7 @@ module HumanoidLCMSim
 export # types
     HumanoidRobotInfo,
     LCMController,
+    Actuator,
     Side
 
 export # functions
@@ -12,7 +13,8 @@ export # functions
     old_actuator_config
 
 export # submodules
-    Sides
+    Sides,
+    AtlasSim
 
 using RigidBodySim
 using RigidBodyDynamics
@@ -34,5 +36,7 @@ using .NativeBotCoreLCMTypes
 
 include("humanoid_robot_info.jl")
 include("control.jl")
+
+include("atlas.jl")
 
 end # module
