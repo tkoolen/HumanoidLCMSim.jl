@@ -10,7 +10,7 @@ mutable struct RobotStateT <: LCMType
     force_torque::ForceTorqueT
 end
 
-LCMCore.fingerprint(::Type{RobotStateT}) = SVector(0x7e, 0xca, 0x9a, 0x4a, 0x9f, 0x35, 0x75, 0xc7)
+LCMCore.fingerprint(::Type{RobotStateT}) = SVector(0x47, 0x1c, 0xf1, 0x17, 0x48, 0xdf, 0x2b, 0x76)
 LCMCore.size_fields(::Type{RobotStateT}) = (:num_joints,)
 
 function Base.resize!(msg::RobotStateT)
