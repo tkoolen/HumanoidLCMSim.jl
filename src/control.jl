@@ -169,7 +169,7 @@ function publish_robot_state(controller::LCMController, t::Number, state::Mechan
 end
 
 struct NoCommandError <: Exception end
-Base.showerror(io::IO, e::NoCommandError) = print(io, "Didn't receive a robot_command_t message.")
+Base.showerror(io::IO, e::NoCommandError) = print(io, "Didn't receive a command message.")
 
 function (controller::LCMController)(τ::AbstractVector, t::Number, state::MechanismState)
     # send state info on first tick to get things started
