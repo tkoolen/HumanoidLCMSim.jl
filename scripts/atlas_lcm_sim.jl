@@ -21,6 +21,7 @@ add_environment_primitive!(mechanism, ground);
 # Create visualizer
 any_open_visualizer_windows() || (new_visualizer_window(); sleep(1));
 vis = Visualizer()[:atlas]
+# setgeometry!(vis, mechanism, RigidBodyTreeInspector.create_geometry(mechanism, show_inertias=true))
 setgeometry!(vis, mechanism, RigidBodyTreeInspector.parse_urdf(AtlasRobot.urdfpath(), mechanism; package_path = [AtlasRobot.packagepath()]))
 
 feet = Dict(Sides.left => findbody(mechanism, "l_foot"), Sides.right => findbody(mechanism, "r_foot"))
@@ -53,7 +54,8 @@ HumanoidLCMSim.publish_robot_state(lcmcontroller, 0.0, state)
 
 msg = HumanoidLCMSim.UtimeT()
 lcm = LCM()
+println("Publishing START_MIT_STAND")
 publish(lcm, "START_MIT_STAND", msg)
 sleep(2)
-
+println("Simulating")
 sol = solve(problem, Tsit5(), abs_tol = 1e-10, dt = 0.05, callback = CallbackSet(vis, state));
