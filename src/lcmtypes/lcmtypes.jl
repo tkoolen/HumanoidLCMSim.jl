@@ -1,6 +1,7 @@
 module NativeBotCoreLCMTypes # TODO
 
 export
+    UtimeT,
     Vector3DT,
     QuaternionT,
     TwistT,
@@ -11,6 +12,7 @@ export
 
 using LCMCore, StaticArrays
 
+include("utime_t.jl")
 include("vector_3d_t.jl")
 include("quaternion_t.jl")
 include("twist_t.jl")
