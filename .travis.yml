@@ -15,7 +15,7 @@ git:
 
 ## uncomment the following lines to override the default test script
 script:
- - julia -e 'Pkg.clone(pwd()); Pkg.checkout("RigidBodyDynamics"); Pkg.checkout("RigidBodySim"); Pkg.clone("https://github.com/tkoolen/AtlasRobot.jl.git"); Pkg.build("AtlasRobot"); Pkg.clone("https://github.com/rdeits/BotCoreLCMTypes.jl.git"); Pkg.build("BotCoreLCMTypes"); Pkg.build("HumanoidLCMSim"); Pkg.test("HumanoidLCMSim"; coverage=true)'
+ - julia -e 'Pkg.clone(pwd()); Pkg.clone("https://github.com/rdeits/BotCoreLCMTypes.jl.git"); Pkg.build("BotCoreLCMTypes"); Pkg.checkout("LCMCore"); Pkg.build("HumanoidLCMSim"); Pkg.test("HumanoidLCMSim"; coverage=true)'
 after_success:
   # push coverage results to Coveralls
   - julia -e 'cd(Pkg.dir("HumanoidLCMSim")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'

@@ -10,19 +10,9 @@ mutable struct RobotStateT <: LCMType
     force_torque::ForceTorqueT
 end
 
-LCMCore.fingerprint(::Type{RobotStateT}) = SVector(0x47, 0x1c, 0xf1, 0x17, 0x48, 0xdf, 0x2b, 0x76)
-LCMCore.size_fields(::Type{RobotStateT}) = (:num_joints,)
-
-function Base.resize!(msg::RobotStateT)
-    resize!(msg.joint_name, msg.num_joints)
-    resize!(msg.joint_position, msg.num_joints)
-    resize!(msg.joint_velocity, msg.num_joints)
-    resize!(msg.joint_effort, msg.num_joints)
-end
-
-function LCMCore.check_valid(msg::RobotStateT)
-    @assert length(msg.joint_name) == msg.num_joints
-    @assert length(msg.joint_position) == msg.num_joints
-    @assert length(msg.joint_velocity) == msg.num_joints
-    @assert length(msg.joint_effort) == msg.num_joints
-end
+@lcmtypesetup(RobotStateT,
+    joint_name => (num_joints,),
+    joint_position => (num_joints,),
+    joint_velocity => (num_joints,),
+    joint_effort => (num_joints,)
+)
