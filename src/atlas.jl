@@ -73,7 +73,7 @@ end
 
 function send_init_messages(state::MechanismState, lcmcontroller::LCMController)
     HumanoidLCMSim.publish_robot_state(lcmcontroller, 0.0, state)
-    utime = HumanoidLCMSim.UtimeT()
+    utime = HumanoidLCMSim.utime_t()
     lcm = LCM()
     println("Publishing START_MIT_STAND")
     publish(lcm, "START_MIT_STAND", utime)

@@ -5,8 +5,8 @@ struct LCMController
     robot_info::HumanoidRobotInfo{Float64}
     lcm::LCM
     robot_state_channel::String
-    robot_state_msg::RobotStateT
-    atlas_command_msg::AtlasCommandT
+    robot_state_msg::robot_state_t
+    atlas_command_msg::atlas_command_t
     encodebuffer::IOBuffer
     new_command::Base.RefValue{Bool}
 end
@@ -21,8 +21,8 @@ function LCMController(robot_info::HumanoidRobotInfo;
     tprev = Ref(0.)
     τprev = zeros(num_velocities(mechanism))
     lcm = LCM()
-    robot_state_msg = RobotStateT()
-    atlas_command_msg = AtlasCommandT()
+    robot_state_msg = robot_state_t()
+    atlas_command_msg = atlas_command_t()
     encodebuffer = IOBuffer(false, true)
     controller = LCMController(result, tprev, τprev, robot_info, lcm, robot_state_channel, robot_state_msg, atlas_command_msg, encodebuffer, Ref(false))
 
@@ -53,7 +53,7 @@ end
 
 range_to_ind(range) = (@assert length(range) == 1; first(range))
 
-function set!(msg::Vector3DT, trans::AbstractVector)
+function set!(msg::vector_3d_t, trans::AbstractVector)
     @boundscheck checkbounds(trans, 1:3)
     @inbounds begin
         msg.x = trans[1]
@@ -63,7 +63,7 @@ function set!(msg::Vector3DT, trans::AbstractVector)
     msg
 end
 
-function set!(msg::QuaternionT, rot::Rotation{3})
+function set!(msg::quaternion_t, rot::Rotation{3})
     quat = Quat(rot)
     msg.w = quat.w
     msg.x = quat.x
@@ -72,19 +72,19 @@ function set!(msg::QuaternionT, rot::Rotation{3})
     msg
 end
 
-function set!(msg::Position3DT, tf::Transform3D)
+function set!(msg::position_3d_t, tf::Transform3D)
     set!(msg.translation, translation(tf))
     set!(msg.rotation, rotation(tf))
     msg
 end
 
-function set!(msg::TwistT, twist::Twist)
+function set!(msg::twist_t, twist::Twist)
     set!(msg.linear_velocity, linear(twist))
     set!(msg.angular_velocity, angular(twist))
     msg
 end
 
-function set!(msg::ForceTorqueT, left_foot_wrench::Wrench, right_foot_wrench::Wrench, left_hand_wrench::Wrench, right_hand_wrench::Wrench)
+function set!(msg::force_torque_t, left_foot_wrench::Wrench, right_foot_wrench::Wrench, left_hand_wrench::Wrench, right_hand_wrench::Wrench)
     msg.l_foot_force_z = linear(left_foot_wrench)[3]
     msg.l_foot_torque_x = angular(left_foot_wrench)[1]
     msg.l_foot_torque_y = angular(left_foot_wrench)[2]
@@ -102,7 +102,7 @@ function contact_wrench_in_body_frame(state::MechanismState, result::DynamicsRes
     transform(RigidBodyDynamics.contact_wrench(result, body), inv(transform_to_root(state, body)))
 end
 
-function set!(msg::RobotStateT, result::DynamicsResult, robot_info::HumanoidRobotInfo, τprev::AbstractVector, t::Number, state::MechanismState)
+function set!(msg::robot_state_t, result::DynamicsResult, robot_info::HumanoidRobotInfo, τprev::AbstractVector, t::Number, state::MechanismState)
     # time
     msg.utime = floor(Int, t * 1e6)
 
@@ -140,7 +140,7 @@ function set!(msg::RobotStateT, result::DynamicsResult, robot_info::HumanoidRobo
     msg
 end
 
-function compute_torques!(τ::AbstractVector, Δt::Number, state::MechanismState, τprev::AbstractVector, msg::AtlasCommandT, robot_info::HumanoidRobotInfo)
+function compute_torques!(τ::AbstractVector, Δt::Number, state::MechanismState, τprev::AbstractVector, msg::atlas_command_t, robot_info::HumanoidRobotInfo)
     τ[:] = 0
     for i = 1 : msg.num_joints
         jointid = findjointid(robot_info, findactuator(robot_info, msg.joint_names[i]))
