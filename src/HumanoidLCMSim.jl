@@ -24,14 +24,13 @@ using Rotations
 using LCMCore
 using BufferedStreams
 using LightXML
+using BotCoreLCMTypes
 import DataStructures: OrderedDict
 
-include("lcmtypes/lcmtypes.jl")
 include("gains.jl")
 include("sides.jl")
 
 using .Sides
-using .NativeBotCoreLCMTypes
 
 include("humanoid_robot_info.jl")
 include("control.jl")

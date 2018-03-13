@@ -15,7 +15,7 @@ git:
 
 ## uncomment the following lines to override the default test script
 script:
- - julia -e 'Pkg.clone(pwd()); Pkg.clone("https://github.com/rdeits/BotCoreLCMTypes.jl.git"); Pkg.build("BotCoreLCMTypes"); Pkg.checkout("LCMCore"); Pkg.build("HumanoidLCMSim"); Pkg.test("HumanoidLCMSim"; coverage=true)'
+ - julia -e 'Pkg.clone(pwd()); Pkg.clone("https://github.com/JuliaRobotics/BotCoreLCMTypes.jl.git"); Pkg.build("BotCoreLCMTypes"); Pkg.checkout("LCMCore"); Pkg.build("HumanoidLCMSim"); Pkg.test("HumanoidLCMSim"; coverage=true)'
 after_success:
   # push coverage results to Coveralls
   - julia -e 'cd(Pkg.dir("HumanoidLCMSim")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
