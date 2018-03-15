@@ -9,7 +9,7 @@ using DrakeVisualizer
 import RigidBodyTreeInspector
 import AtlasRobot
 import LCMCore: LCM, publish
-import DiffEqBase: CallbackSet, solve
+import DiffEqBase: CallbackSet, solve, init
 import OrdinaryDiffEq: Tsit5
 import DataStructures: OrderedDict
 
@@ -95,7 +95,7 @@ Default usage:
 using HumanoidLCMSim; AtlasSim.run()
 ```
 """
-function run(; controlΔt::Float64 = 1 / 300, headless = false)
+function run(; controlΔt::Float64 = 1 / 300, headless = false, max_rate = Inf)
     BLAS.set_num_threads(4) # leave some cores for other processes
     mechanism = addflatground!(AtlasRobot.mechanism())
     info = robotinfo(mechanism)
@@ -104,15 +104,22 @@ function run(; controlΔt::Float64 = 1 / 300, headless = false)
     controller = periodic_controller(info, controlΔt)
     problem = ODEProblem(state, (0., Inf), controller)
     send_init_messages(state, controller.control)
-    println("Simulating")
-    vis_callback = if headless
+    callback = if headless
         nothing
     else
         vis = visualizer(mechanism)
         settransform!(vis, state)
-        vis_callback = CallbackSet(vis, state)
+        vis_callbacks = CallbackSet(vis, state)
+        if max_rate < Inf
+            rate_limiter = RealtimeRateLimiter(max_rate = max_rate)
+            CallbackSet(rate_limiter, vis_callbacks)
+        else
+            vis_callbacks
+        end
     end
-    solve(problem, Tsit5(), abs_tol = 1e-10, dt = controlΔt, callback = vis_callback)
+    integrator = init(problem, Tsit5(); abs_tol = 1e-10, dt = controlΔt, callback = callback, dtmin = 0.0)
+    println("Simulating")
+    solve!(integrator)
 end
 
 end # module
