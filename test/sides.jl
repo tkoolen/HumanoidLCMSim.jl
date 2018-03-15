@@ -1,5 +1,3 @@
-module SidesTest
-
 using Compat.Test
 using HumanoidLCMSim
 
@@ -13,5 +11,3 @@ using HumanoidLCMSim
     @test Sides.flipsign_if_right(2., Sides.left) == 2.
     @test Sides.flipsign_if_right(2., Sides.right) == -2.
 end
-
-end # module

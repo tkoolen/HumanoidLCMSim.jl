@@ -9,8 +9,7 @@ export # types
     Side
 
 export # functions
-    parse_actuators,
-    old_actuator_config
+    parse_actuators
 
 export # submodules
     Sides,
@@ -25,14 +24,13 @@ using Rotations
 using LCMCore
 using BufferedStreams
 using LightXML
+using BotCoreLCMTypes
 import DataStructures: OrderedDict
 
-include("lcmtypes/lcmtypes.jl")
 include("gains.jl")
 include("sides.jl")
 
 using .Sides
-using .NativeBotCoreLCMTypes
 
 include("humanoid_robot_info.jl")
 include("control.jl")
