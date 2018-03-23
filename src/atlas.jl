@@ -9,7 +9,7 @@ using DrakeVisualizer
 import RigidBodyTreeInspector
 import AtlasRobot
 import LCMCore: LCM, publish
-import DiffEqBase: CallbackSet, solve
+import DiffEqBase: CallbackSet, solve, init
 import OrdinaryDiffEq: Tsit5
 import DataStructures: OrderedDict
 
@@ -64,13 +64,6 @@ function visualizer(mechanism::Mechanism)
     vis
 end
 
-function periodic_controller(info::HumanoidRobotInfo, controlΔt::Float64)
-    lcmcontroller = LCMController(info;
-        robot_state_channel="EST_ROBOT_STATE",
-        robot_command_channel="ATLAS_COMMAND")
-    PeriodicController(controlΔt, lcmcontroller)
-end
-
 function send_init_messages(state::MechanismState, lcmcontroller::LCMController)
     HumanoidLCMSim.publish_robot_state(lcmcontroller, 0.0, state)
     utime = HumanoidLCMSim.utime_t()
@@ -79,6 +72,25 @@ function send_init_messages(state::MechanismState, lcmcontroller::LCMController)
     publish(lcm, "START_MIT_STAND", utime)
     sleep(2)
     nothing
+end
+
+function make_callback(state::MechanismState, headless::Bool, max_rate)
+    callback = CallbackSet()
+    if max_rate < Inf
+        callback = CallbackSet(callback, RealtimeRateLimiter(max_rate = max_rate))
+    end
+    if !headless
+        vis = visualizer(state.mechanism)
+        settransform!(vis, state)
+        callback = CallbackSet(callback, CallbackSet(vis, state))
+    end
+    callback
+end
+
+function simulate(state::MechanismState, controller::PeriodicController, callback)
+    problem = ODEProblem(state, (0., Inf), controller, callback = callback)
+    integrator = init(problem, Tsit5(); abs_tol = 1e-10, dtmin = 0.0)
+    solve!(integrator)
 end
 
 """
@@ -95,24 +107,18 @@ Default usage:
 using HumanoidLCMSim; AtlasSim.run()
 ```
 """
-function run(; controlΔt::Float64 = 1 / 300, headless = false)
+function run(; controlΔt::Float64 = 1 / 300, headless = false, max_rate = Inf)
     BLAS.set_num_threads(4) # leave some cores for other processes
     mechanism = addflatground!(AtlasRobot.mechanism())
     info = robotinfo(mechanism)
     state = MechanismState(mechanism)
     initialize!(state, info)
-    controller = periodic_controller(info, controlΔt)
-    problem = ODEProblem(state, (0., Inf), controller)
-    send_init_messages(state, controller.control)
-    println("Simulating")
-    vis_callback = if headless
-        nothing
-    else
-        vis = visualizer(mechanism)
-        settransform!(vis, state)
-        vis_callback = CallbackSet(vis, state)
-    end
-    solve(problem, Tsit5(), abs_tol = 1e-10, dt = controlΔt, callback = vis_callback)
+    lcmcontroller = LCMController(info;
+        robot_state_channel="EST_ROBOT_STATE",
+        robot_command_channel="ATLAS_COMMAND")
+    send_init_messages(state, lcmcontroller)
+    callback = make_callback(state, headless, max_rate)
+    simulate(state, PeriodicController(controlΔt, lcmcontroller), callback)
 end
 
 end # module
