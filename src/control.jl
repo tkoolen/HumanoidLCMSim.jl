@@ -98,6 +98,10 @@ function set!(msg::force_torque_t, left_foot_wrench::Wrench, right_foot_wrench::
     msg
 end
 
+# Type piracy, but whatever:
+StaticArrays.SVector(msg::vector_3d_t) = SVector(msg.x, msg.y, msg.z)
+Rotations.Quat(msg::quaternion_t) = Quat(msg.w, msg.x, msg.y, msg.z)
+
 function contact_wrench_in_body_frame(state::MechanismState, result::DynamicsResult, body::RigidBody)
     transform(RigidBodyDynamics.contact_wrench(result, body), inv(transform_to_root(state, body)))
 end
@@ -197,4 +201,31 @@ function RigidBodySim.PeriodicController(Δt::Number, controller::LCMController)
         (c, t, u, integrator) -> initialize!(controller)
     end
     PeriodicController(zeros(controller.τprev), Δt, controller; initialize = initialize)
+end
+
+function set!(state::MechanismState, msg::robot_state_t, robot_info::HumanoidRobotInfo)
+    floating_joint = robot_info.floating_joint
+    world_aligned_floating_body_frame = robot_info.world_aligned_floating_body_frame
+
+    trans = SVector(msg.pose.translation)
+    rot = Quat(msg.pose.rotation)
+    pose = Transform3D(frame_after(floating_joint), frame_before(floating_joint), rot, trans)
+    set_configuration!(state, floating_joint, pose)
+
+    # twist in message is expressed in world-aligned body frame (for some reason)
+    to_body = Transform3D(world_aligned_floating_body_frame, frame_after(floating_joint), inv(rot))
+    angular = SVector(msg.twist.angular_velocity)
+    linear = SVector(msg.twist.linear_velocity)
+    twist = Twist(frame_after(floating_joint), frame_before(floating_joint), world_aligned_floating_body_frame, angular, linear)
+    twist = transform(twist, to_body)
+    set_velocity!(state, floating_joint, twist)
+
+    @assert msg.num_joints == length(robot_info.revolutejoints)
+    for i = 1 : msg.num_joints
+        joint = robot_info.revolutejoints[i]
+        @assert msg.joint_name[i] == string(joint)
+        set_configuration!(state, joint, msg.joint_position[i])
+        set_velocity!(state, joint, msg.joint_velocity[i])
+    end
+    state
 end

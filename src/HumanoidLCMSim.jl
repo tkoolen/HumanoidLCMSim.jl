@@ -15,11 +15,13 @@ export # submodules
     Sides,
     AtlasSim
 
+using Compat
 using RigidBodySim
 using RigidBodyDynamics
 using RigidBodyTreeInspector
 using OrdinaryDiffEq
 using DiffEqCallbacks
+using StaticArrays
 using Rotations
 using LCMCore
 using BufferedStreams
