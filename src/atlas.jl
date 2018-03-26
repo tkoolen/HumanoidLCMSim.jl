@@ -12,6 +12,8 @@ import LCMCore: LCM, publish
 import DiffEqBase: CallbackSet, solve, init
 import OrdinaryDiffEq: Tsit5
 import DataStructures: OrderedDict
+import RigidBodyTreeInspector: visual_elements
+import MechanismGeometries: URDFVisuals
 
 function addflatground!(mechanism::Mechanism)
     frame = root_frame(mechanism)
@@ -57,8 +59,7 @@ function visualizer(mechanism::Mechanism)
     # Create and set up Visualizer
     vis = Visualizer()[:atlas]
     # ellipsoids = RigidBodyTreeInspector.create_geometry(mechanism, show_inertias=true))
-    meshgeometry = RigidBodyTreeInspector.parse_urdf(
-        AtlasRobot.urdfpath(), mechanism; package_path = [AtlasRobot.packagepath()])
+    meshgeometry = visual_elements(mechanism, URDFVisuals(AtlasRobot.urdfpath(); package_path = [AtlasRobot.packagepath()]))
     setgeometry!(vis, mechanism, meshgeometry)
 
     vis
@@ -88,7 +89,7 @@ function make_callback(state::MechanismState, headless::Bool, max_rate)
 end
 
 function simulate(dynamics::Dynamics, state0, callback)
-    problem = ODEProblem(dynamics, state, (0., Inf), callback = callback)
+    problem = ODEProblem(dynamics, state0, (0., Inf), callback = callback)
     integrator = init(problem, Tsit5(); abs_tol = 1e-10, dtmin = 0.0)
     solve!(integrator)
 end
