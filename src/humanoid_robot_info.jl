@@ -31,8 +31,8 @@ struct HumanoidRobotInfo{T}
     mechanism::Mechanism{T}
     feet::Dict{Side, RigidBody{T}}
     hands::Dict{Side, RigidBody{T}}
-    floating_joint::Joint{T, QuaternionFloating{T}}
-    floating_body::RigidBody{T}
+    floatingjoint::Joint{T, QuaternionFloating{T}}
+    floatingbody::RigidBody{T}
     world_aligned_floating_body_frame::CartesianFrame3D
     actuatorconfig::OrderedDict{Actuator, JointID}
     revolutejoints::Vector{Joint{T, Revolute{T}}}
@@ -47,11 +47,11 @@ struct HumanoidRobotInfo{T}
         @assert isempty(setdiff(keys(hands), sides))
         floating_joints = filter(isfloating, tree_joints(mechanism))
         @assert length(floating_joints) == 1
-        floating_joint = first(floating_joints)
-        floating_body = successor(floating_joint, mechanism)
+        floatingjoint = first(floating_joints)
+        floatingbody = successor(floatingjoint, mechanism)
         world_aligned_floating_body_frame = CartesianFrame3D("world_aligned_floating_body_frame")
         revolutejoints = Joint{T, Revolute{T}}[j for j in tree_joints(mechanism) if joint_type(j) isa Revolute{T}]
-        new{T}(mechanism, feet, hands, floating_joint, floating_body, world_aligned_floating_body_frame, actuatorconfig, revolutejoints)
+        new{T}(mechanism, feet, hands, floatingjoint, floatingbody, world_aligned_floating_body_frame, actuatorconfig, revolutejoints)
     end
 end
 

@@ -111,13 +111,13 @@ function set!(msg::robot_state_t, result::DynamicsResult, robot_info::HumanoidRo
     msg.utime = floor(Int, t * 1e6)
 
     # pose
-    floating_body = robot_info.floating_body
-    pose = transform_to_root(state, floating_body)
+    floatingbody = robot_info.floatingbody
+    pose = transform_to_root(state, floatingbody)
     set!(msg.pose, pose)
 
     # twist
     # twist in message should be expressed in world-aligned body frame (for some reason)
-    twist = twist_wrt_world(state, robot_info.floating_body)
+    twist = twist_wrt_world(state, robot_info.floatingbody)
     to_world_aligned_floating_body = Transform3D(pose.to, robot_info.world_aligned_floating_body_frame, -translation(pose))
     twist = transform(twist, to_world_aligned_floating_body)
     set!(msg.twist, twist)
@@ -204,21 +204,21 @@ function RigidBodySim.PeriodicController(Δt::Number, controller::LCMController)
 end
 
 function set!(state::MechanismState, msg::robot_state_t, robot_info::HumanoidRobotInfo)
-    floating_joint = robot_info.floating_joint
+    floatingjoint = robot_info.floatingjoint
     world_aligned_floating_body_frame = robot_info.world_aligned_floating_body_frame
 
     trans = SVector(msg.pose.translation)
     rot = Quat(msg.pose.rotation)
-    pose = Transform3D(frame_after(floating_joint), frame_before(floating_joint), rot, trans)
-    set_configuration!(state, floating_joint, pose)
+    pose = Transform3D(frame_after(floatingjoint), frame_before(floatingjoint), rot, trans)
+    set_configuration!(state, floatingjoint, pose)
 
     # twist in message is expressed in world-aligned body frame (for some reason)
-    to_body = Transform3D(world_aligned_floating_body_frame, frame_after(floating_joint), inv(rot))
+    to_body = Transform3D(world_aligned_floating_body_frame, frame_after(floatingjoint), inv(rot))
     angular = SVector(msg.twist.angular_velocity)
     linear = SVector(msg.twist.linear_velocity)
-    twist = Twist(frame_after(floating_joint), frame_before(floating_joint), world_aligned_floating_body_frame, angular, linear)
+    twist = Twist(frame_after(floatingjoint), frame_before(floatingjoint), world_aligned_floating_body_frame, angular, linear)
     twist = transform(twist, to_body)
-    set_velocity!(state, floating_joint, twist)
+    set_velocity!(state, floatingjoint, twist)
 
     @assert msg.num_joints == length(robot_info.revolutejoints)
     for i = 1 : msg.num_joints
