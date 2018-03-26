@@ -20,7 +20,7 @@ function addflatground!(mechanism::Mechanism)
     mechanism
 end
 
-function robotinfo(mechanism::Mechanism)
+function atlasrobotinfo(mechanism::Mechanism)
     actuatorconfig = OrderedDict{Actuator, JointID}(
         Actuator(string(j)) => JointID(j) for j in  tree_joints(mechanism) if num_positions(j) == 1)
     feet = Dict(
@@ -87,8 +87,8 @@ function make_callback(state::MechanismState, headless::Bool, max_rate)
     callback
 end
 
-function simulate(state::MechanismState, controller::PeriodicController, callback)
-    problem = ODEProblem(state, (0., Inf), controller, callback = callback)
+function simulate(dynamics::Dynamics, state0, callback)
+    problem = ODEProblem(dynamics, state, (0., Inf), callback = callback)
     integrator = init(problem, Tsit5(); abs_tol = 1e-10, dtmin = 0.0)
     solve!(integrator)
 end
@@ -110,15 +110,15 @@ using HumanoidLCMSim; AtlasSim.run()
 function run(; controlΔt::Float64 = 1 / 300, headless = false, max_rate = Inf)
     BLAS.set_num_threads(4) # leave some cores for other processes
     mechanism = addflatground!(AtlasRobot.mechanism())
-    info = robotinfo(mechanism)
-    state = MechanismState(mechanism)
-    initialize!(state, info)
+    info = atlasrobotinfo(mechanism)
+    state0 = MechanismState(mechanism)
+    initialize!(state0, info)
     lcmcontroller = LCMController(info;
         robot_state_channel="EST_ROBOT_STATE",
         robot_command_channel="ATLAS_COMMAND")
-    send_init_messages(state, lcmcontroller)
-    callback = make_callback(state, headless, max_rate)
-    simulate(state, PeriodicController(controlΔt, lcmcontroller), callback)
+    send_init_messages(state0, lcmcontroller)
+    callback = make_callback(state0, headless, max_rate)
+    simulate(Dynamics(mechanism, PeriodicController(controlΔt, lcmcontroller)), state0, callback)
 end
 
 end # module
