@@ -18,7 +18,6 @@ export # submodules
 using Compat
 using RigidBodySim
 using RigidBodyDynamics
-using RigidBodyTreeInspector
 using OrdinaryDiffEq
 using DiffEqCallbacks
 using StaticArrays

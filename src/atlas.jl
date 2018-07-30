@@ -1,19 +1,19 @@
 module AtlasSim
 
+using Compat
 using RigidBodySim
 using HumanoidLCMSim
 using RigidBodyDynamics
 using RigidBodyDynamics.Contact
-using DrakeVisualizer
 
-import RigidBodyTreeInspector
 import AtlasRobot
-import LCMCore: LCM, publish
-import DiffEqBase: CallbackSet, solve, init
-import OrdinaryDiffEq: Tsit5
-import DataStructures: OrderedDict
-import RigidBodyTreeInspector: visual_elements
-import MechanismGeometries: URDFVisuals
+
+using LCMCore: LCM, publish
+using DiffEqBase: CallbackSet, solve, init
+using OrdinaryDiffEq: Tsit5
+using DataStructures: OrderedDict
+using MechanismGeometries: URDFVisuals
+using Blink: Window
 
 function addflatground!(mechanism::Mechanism)
     frame = root_frame(mechanism)
@@ -52,19 +52,6 @@ function initialize!(state::MechanismState, info::HumanoidRobotInfo)
     state
 end
 
-function visualizer(mechanism::Mechanism)
-    # Open a new RigidBodySim window if necessary
-    any_open_visualizer_windows() || (new_visualizer_window(); sleep(1));
-
-    # Create and set up Visualizer
-    vis = Visualizer()[:atlas]
-    # ellipsoids = RigidBodyTreeInspector.create_geometry(mechanism, show_inertias=true))
-    meshgeometry = visual_elements(mechanism, URDFVisuals(AtlasRobot.urdfpath(); package_path = [AtlasRobot.packagepath()]))
-    setgeometry!(vis, mechanism, meshgeometry)
-
-    vis
-end
-
 function send_init_messages(state::MechanismState, lcmcontroller::LCMController)
     HumanoidLCMSim.publish_robot_state(lcmcontroller, 0.0, state)
     utime = HumanoidLCMSim.utime_t()
@@ -80,10 +67,16 @@ function make_callback(state::MechanismState, headless::Bool, max_rate)
     if max_rate < Inf
         callback = CallbackSet(callback, RealtimeRateLimiter(max_rate = max_rate))
     end
-    if !headless
-        vis = visualizer(state.mechanism)
-        settransform!(vis, state)
-        callback = CallbackSet(callback, CallbackSet(vis, state))
+    if headless
+        controls = SimulationControls()
+        open(controls, Window())
+        callback = CallbackSet(callback, CallbackSet(controls))
+    else
+        visuals = URDFVisuals(AtlasRobot.urdfpath(); package_path = [AtlasRobot.packagepath()])
+        gui = GUI(state.mechanism, visuals)
+        open(gui)
+        Compat.copyto!(gui.visualizer, state)
+        callback = CallbackSet(callback, CallbackSet(gui))
     end
     callback
 end
@@ -92,6 +85,7 @@ function simulate(dynamics::Dynamics, state0, callback)
     problem = ODEProblem(dynamics, state0, (0., Inf), callback = callback)
     integrator = init(problem, Tsit5(); abs_tol = 1e-10, dtmin = 0.0)
     solve!(integrator)
+    integrator.sol
 end
 
 """
@@ -109,7 +103,7 @@ using HumanoidLCMSim; AtlasSim.run()
 ```
 """
 function run(; controlΔt::Float64 = 1 / 300, headless = false, max_rate = Inf)
-    BLAS.set_num_threads(4) # leave some cores for other processes
+    BLAS.set_num_threads(3) # leave some cores for other processes
     mechanism = addflatground!(AtlasRobot.mechanism())
     info = atlasrobotinfo(mechanism)
     state0 = MechanismState(mechanism)
@@ -117,9 +111,22 @@ function run(; controlΔt::Float64 = 1 / 300, headless = false, max_rate = Inf)
     lcmcontroller = LCMController(info;
         robot_state_channel="EST_ROBOT_STATE",
         robot_command_channel="ATLAS_COMMAND")
+    pcontroller = PeriodicController(controlΔt, lcmcontroller)
+    control! = let pcontroller = pcontroller
+        function (τ, t, state)
+            pcontroller(τ, t, state)
+            # add some damping. TODO: do in a more appropriate place
+            v = velocity(state)
+            τ .-= 1.0 .* v
+            τ
+        end
+    end
     send_init_messages(state0, lcmcontroller)
-    callback = make_callback(state0, headless, max_rate)
-    simulate(Dynamics(mechanism, PeriodicController(controlΔt, lcmcontroller)), state0, callback)
+    callback = CallbackSet(make_callback(state0, headless, max_rate), PeriodicCallback(pcontroller))
+    walltime = @elapsed sol = simulate(Dynamics(mechanism, control!), state0, callback)
+    simtime = sol.t[end]
+    println("Simulated $simtime s in $walltime s ($(simtime / walltime) x realtime).")
+    sol
 end
 
 end # module

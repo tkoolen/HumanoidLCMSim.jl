@@ -1,6 +1,6 @@
 julia 0.6
-RigidBodyDynamics 0.5.0
-RigidBodySim 0.0.1
+RigidBodyDynamics 0.7.0
+RigidBodySim 0.3.0
 LCMCore 0.2.0
 Compat
 AtlasRobot
