@@ -31,7 +31,9 @@ function LCMControlPublisher(robot_info::HumanoidRobotInfo, controller::C;
         atlas_command_msg.joint_names[i] = actuator.name
     end
 
-    subscribe(lcm, robot_state_channel, (channel, data) -> handle_robot_state_msg(publisher, data))
+    let publisher = publisher
+        subscribe(lcm, robot_state_channel, (channel, data) -> handle_robot_state_msg(publisher, data))
+    end
 
     @async while true
         handle(lcm)
@@ -41,15 +43,15 @@ function LCMControlPublisher(robot_info::HumanoidRobotInfo, controller::C;
 end
 
 function handle_robot_state_msg(publisher::LCMControlPublisher, data::Vector{UInt8})
-    io = BufferedInputStream(data) # TODO: allocations
-    decode!(publisher.robot_state_msg, io)
+    io = BufferedInputStream(data) # TODO: allocates
+    decode!(publisher.robot_state_msg, io) # TODO: allocates
     set!(publisher.state, publisher.robot_state_msg, publisher.robot_info)
     t = publisher.robot_state_msg.utime / 1e6
     publisher.controller(publisher.τ, t, publisher.state)
     state_des = publisher.state # TODO
     set!(publisher.atlas_command_msg, publisher.τ, t, state_des, publisher.robot_info, publisher.desired_controller_period_ms)
-    encode(publisher.encodebuffer, publisher.atlas_command_msg)
-    bytes = take!(publisher.encodebuffer)
+    encode(publisher.encodebuffer, publisher.atlas_command_msg) # TODO: allocates
+    bytes = take!(publisher.encodebuffer) # TODO: allocates
     publish(publisher.lcm, publisher.robot_command_channel, bytes)
     nothing
 end

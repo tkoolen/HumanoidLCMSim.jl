@@ -35,6 +35,7 @@ struct HumanoidRobotInfo{T}
     floatingbody::RigidBody{T}
     world_aligned_floating_body_frame::CartesianFrame3D
     actuatorconfig::OrderedDict{Actuator, JointID}
+    actuators::Vector{Actuator}
     revolutejoints::Vector{Joint{T, Revolute{T}}}
 
     function HumanoidRobotInfo(
@@ -51,18 +52,19 @@ struct HumanoidRobotInfo{T}
         floatingbody = successor(floatingjoint, mechanism)
         world_aligned_floating_body_frame = CartesianFrame3D("world_aligned_floating_body_frame")
         revolutejoints = Joint{T, Revolute{T}}[j for j in tree_joints(mechanism) if joint_type(j) isa Revolute{T}]
-        new{T}(mechanism, feet, hands, floatingjoint, floatingbody, world_aligned_floating_body_frame, actuatorconfig, revolutejoints)
+        actuators = collect(keys(actuatorconfig))
+        new{T}(mechanism, feet, hands, floatingjoint, floatingbody, world_aligned_floating_body_frame, actuatorconfig, actuators, revolutejoints)
     end
 end
 
-num_actuators(info::HumanoidRobotInfo) = length(info.actuatorconfig)
-actuators(info::HumanoidRobotInfo) = keys(info.actuatorconfig)
+num_actuators(info::HumanoidRobotInfo) = length(info.actuators)
+actuators(info::HumanoidRobotInfo) = info.actuators
 
 function findactuator(info::HumanoidRobotInfo, name::String)
     for actuator in actuators(info)
         actuator.name == name && return actuator
     end
-    throw(ArgumentError("Actuator with name \"$name\" not found"))
+    throw(KeyError(name))
 end
 
 findjointid(info::HumanoidRobotInfo, actuator::Actuator) = info.actuatorconfig[actuator]

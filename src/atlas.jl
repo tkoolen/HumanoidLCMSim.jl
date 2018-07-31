@@ -83,9 +83,9 @@ end
 
 function simulate(dynamics::Dynamics, state0, final_time, callback)
     problem = ODEProblem(dynamics, state0, (0., final_time), callback = callback)
-    integrator = init(problem, Tsit5(); abs_tol = 1e-10, dtmin = 0.0)
-    solve!(integrator)
-    integrator.sol
+    integrator = init(problem, Tsit5(); abs_tol = 1e-8, dt = 1e-6, dtmin = 0.0)
+    walltime = @elapsed solve!(integrator)
+    integrator.sol, walltime
 end
 
 """
@@ -103,7 +103,7 @@ using HumanoidLCMSim; AtlasSim.run()
 ```
 """
 function run(; final_time = Inf, controlΔt::Float64 = 1 / 300, headless = false, max_rate = Inf)
-    BLAS.set_num_threads(3) # leave some cores for other processes
+    BLAS.set_num_threads(max(Sys.CPU_CORES - 3, 1)) # leave some cores for other processes
     mechanism = addflatground!(AtlasRobot.mechanism())
     info = atlasrobotinfo(mechanism)
     state0 = MechanismState(mechanism)
@@ -123,7 +123,7 @@ function run(; final_time = Inf, controlΔt::Float64 = 1 / 300, headless = false
     end
     send_init_messages(state0, receiver)
     callback = CallbackSet(make_callback(state0, headless, max_rate), PeriodicCallback(pcontroller))
-    walltime = @elapsed sol = simulate(Dynamics(mechanism, control!), state0, final_time, callback)
+    sol, walltime = simulate(Dynamics(mechanism, control!), state0, final_time, callback)
     simtime = sol.t[end]
     println("Simulated $simtime s in $walltime s ($(simtime / walltime) x realtime).")
     sol

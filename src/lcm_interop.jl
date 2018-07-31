@@ -133,10 +133,10 @@ function set!(state::MechanismState, msg::robot_state_t, robot_info::HumanoidRob
     twist = transform(twist, to_body)
     set_velocity!(state, floatingjoint, twist)
 
-    @assert msg.num_joints == length(robot_info.revolutejoints)
+    msg.num_joints == length(robot_info.revolutejoints) || throw(ArgumentError("Number of joints incorrect."))
     for i = 1 : msg.num_joints
         joint = robot_info.revolutejoints[i]
-        @assert msg.joint_name[i] == string(joint)
+        @boundscheck msg.joint_name[i] == string(joint) || throw(ArgumentError("Joint name mismatch."))
         set_configuration!(state, joint, msg.joint_position[i])
         set_velocity!(state, joint, msg.joint_velocity[i])
     end
@@ -145,16 +145,19 @@ end
 
 function set!(msg::atlas_command_t, τ::AbstractVector, t::Float64,
         state_des::MechanismState, robot_info::HumanoidRobotInfo, desired_controller_period_ms::Integer)
-    msg.utime = floor(Int, t * 1e6)
+        msg.utime = floor(Int, t * 1e6)
+    q = configuration(state_des)
+    v = configuration(state_des)
     for i = 1 : msg.num_joints
         # simple torque control for now; really, this method should take a Dict{Actuator, LowLevelJointGains}
-        jointid = findjointid(robot_info, findactuator(robot_info, msg.joint_names[i]))
+        actuator = findactuator(robot_info, msg.joint_names[i])
+        jointid = findjointid(robot_info, actuator)
         position_ind = range_to_ind(configuration_range(state_des, jointid))
         velocity_ind = range_to_ind(velocity_range(state_des, jointid))
         gains = LowLevelJointGains(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0)
 
-        msg.position[i] = configuration(state_des)[position_ind]
-        msg.velocity[i] = configuration(state_des)[velocity_ind]
+        msg.position[i] = q[position_ind]
+        msg.velocity[i] = v[velocity_ind]
         msg.effort[i] = τ[velocity_ind]
         msg.k_q_p[i] = gains.k_q_p
         msg.k_q_i[i] = gains.k_q_i
