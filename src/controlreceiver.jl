@@ -34,7 +34,10 @@ function LCMControlReceiver(robot_info::HumanoidRobotInfo;
     robot_state_msg.num_joints = length(robot_state_msg.joint_name)
     resize!(robot_state_msg)
 
-    subscribe(lcm, robot_command_channel, (channel, data) -> handle_robot_command_msg(receiver, data))
+    let receiver = receiver
+        sub = subscribe(lcm, robot_command_channel, (channel, data) -> handle_robot_command_msg(receiver, data))
+        set_queue_capacity(sub, 1)
+    end
 
     receiver
 end

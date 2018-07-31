@@ -32,7 +32,8 @@ function LCMControlPublisher(robot_info::HumanoidRobotInfo, controller::C;
     end
 
     let publisher = publisher
-        subscribe(lcm, robot_state_channel, (channel, data) -> handle_robot_state_msg(publisher, data))
+        sub = subscribe(lcm, robot_state_channel, (channel, data) -> handle_robot_state_msg(publisher, data))
+        set_queue_capacity(sub, 1)
     end
 
     publisher
