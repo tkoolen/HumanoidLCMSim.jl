@@ -26,7 +26,6 @@ git:
   depth: 99999999
 before_script:
  - julia -e 'Pkg.clone("https://github.com/tkoolen/SimpleQP.jl"); Pkg.clone("https://github.com/tkoolen/QPControl.jl.git")'
- - julia -e 'Pkg.add("JSExpr"); Pkg.checkout("JSExpr")'
 script:
 - $TESTCMD -e 'Pkg.clone(pwd()); Pkg.build("HumanoidLCMSim"); Pkg.test("HumanoidLCMSim"; coverage=true)'
 after_success:

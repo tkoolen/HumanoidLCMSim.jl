@@ -13,6 +13,7 @@ using DiffEqBase: CallbackSet, solve, init
 using OrdinaryDiffEq: Tsit5
 using DataStructures: OrderedDict
 using MechanismGeometries: URDFVisuals
+using JSExpr # FIXME: https://github.com/JunoLab/Blink.jl/issues/134
 using Blink: Window
 
 function addflatground!(mechanism::Mechanism)
@@ -103,7 +104,7 @@ using HumanoidLCMSim; AtlasSim.run()
 ```
 """
 function run(; final_time = Inf, controlΔt::Float64 = 1 / 300, headless = false, max_rate = Inf)
-    BLAS.set_num_threads(max(Sys.CPU_CORES - 3, 1)) # leave some cores for other processes
+    BLAS.set_num_threads(max(floor(Int, Sys.CPU_CORES / 2  - 1), 1)) # leave some cores for other processes
     mechanism = addflatground!(AtlasRobot.mechanism())
     info = atlasrobotinfo(mechanism)
     state0 = MechanismState(mechanism)
@@ -125,7 +126,7 @@ function run(; final_time = Inf, controlΔt::Float64 = 1 / 300, headless = false
     callback = CallbackSet(make_callback(state0, headless, max_rate), PeriodicCallback(pcontroller))
     sol, walltime = simulate(Dynamics(mechanism, control!), state0, final_time, callback)
     simtime = sol.t[end]
-    println("Simulated $simtime s in $walltime s ($(simtime / walltime) x realtime).")
+    println("Simulated $simtime s in $walltime s ($(simtime / walltime) × realtime).")
     sol
 end
 
