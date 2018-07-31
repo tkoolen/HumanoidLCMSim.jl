@@ -4,7 +4,8 @@ module HumanoidLCMSim
 
 export # types
     HumanoidRobotInfo,
-    LCMController,
+    LCMControlReceiver,
+    LCMControlPublisher,
     Actuator,
     Side
 
@@ -33,8 +34,11 @@ include("sides.jl")
 
 using .Sides
 
+include("util.jl")
 include("humanoid_robot_info.jl")
-include("control.jl")
+include("lcm_interop.jl")
+include("controlreceiver.jl")
+include("controlpublisher.jl")
 
 include("atlas.jl")
 

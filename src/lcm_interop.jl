@@ -1,58 +1,3 @@
-struct LCMController
-    result::DynamicsResult{Float64, Float64}
-    tprev::Base.RefValue{Float64}
-    τprev::Vector{Float64}
-    robot_info::HumanoidRobotInfo{Float64}
-    lcm::LCM
-    robot_state_channel::String
-    robot_state_msg::robot_state_t
-    atlas_command_msg::atlas_command_t
-    encodebuffer::IOBuffer
-    new_command::Base.RefValue{Bool}
-end
-
-# TODO: reduce cost of encoding
-
-function LCMController(robot_info::HumanoidRobotInfo;
-        robot_state_channel::String = "EST_ROBOT_STATE",
-        robot_command_channel::String = "ROBOT_COMMAND")
-    mechanism = robot_info.mechanism
-    result = DynamicsResult(mechanism)
-    tprev = Ref(0.)
-    τprev = zeros(num_velocities(mechanism))
-    lcm = LCM()
-    robot_state_msg = robot_state_t()
-    atlas_command_msg = atlas_command_t()
-    encodebuffer = IOBuffer(false, true)
-    controller = LCMController(result, tprev, τprev, robot_info, lcm, robot_state_channel, robot_state_msg, atlas_command_msg, encodebuffer, Ref(false))
-
-    for joint in tree_joints(mechanism)
-        num_velocities(joint) == 1 || continue
-        push!(robot_state_msg.joint_name, string(joint))
-    end
-    robot_state_msg.num_joints = length(robot_state_msg.joint_name)
-    resize!(robot_state_msg)
-
-    subscribe(lcm, robot_command_channel, (channel, data) -> handle_robot_command_msg(controller, data))
-
-    controller
-end
-
-function initialize!(controller::LCMController)
-    controller.tprev[] = 0
-    controller.τprev[:] = 0
-    nothing
-end
-
-function handle_robot_command_msg(controller::LCMController, data::Vector{UInt8})
-    io = BufferedInputStream(data)
-    msg = controller.atlas_command_msg
-    decode!(msg, io)
-    controller.new_command[] = true
-end
-
-range_to_ind(range) = (@assert length(range) == 1; first(range))
-
 function set!(msg::vector_3d_t, trans::AbstractVector)
     @boundscheck checkbounds(trans, 1:3)
     @inbounds begin
@@ -84,7 +29,9 @@ function set!(msg::twist_t, twist::Twist)
     msg
 end
 
-function set!(msg::force_torque_t, left_foot_wrench::Wrench, right_foot_wrench::Wrench, left_hand_wrench::Wrench, right_hand_wrench::Wrench)
+function set!(msg::force_torque_t,
+        left_foot_wrench::Wrench, right_foot_wrench::Wrench,
+        left_hand_wrench::Wrench, right_hand_wrench::Wrench)
     msg.l_foot_force_z = linear(left_foot_wrench)[3]
     msg.l_foot_torque_x = angular(left_foot_wrench)[1]
     msg.l_foot_torque_y = angular(left_foot_wrench)[2]
@@ -106,7 +53,8 @@ function contact_wrench_in_body_frame(state::MechanismState, result::DynamicsRes
     transform(RigidBodyDynamics.contact_wrench(result, body), inv(transform_to_root(state, body)))
 end
 
-function set!(msg::robot_state_t, result::DynamicsResult, robot_info::HumanoidRobotInfo, τprev::AbstractVector, t::Number, state::MechanismState)
+function set!(msg::robot_state_t, result::DynamicsResult, robot_info::HumanoidRobotInfo,
+        τprev::AbstractVector, t::Number, state::MechanismState)
     # time
     msg.utime = floor(Int, t * 1e6)
 
@@ -144,7 +92,8 @@ function set!(msg::robot_state_t, result::DynamicsResult, robot_info::HumanoidRo
     msg
 end
 
-function compute_torques!(τ::AbstractVector, Δt::Number, state::MechanismState, τprev::AbstractVector, msg::atlas_command_t, robot_info::HumanoidRobotInfo)
+function set!(τ::AbstractVector, Δt::Number, state::MechanismState, τprev::AbstractVector,
+        msg::atlas_command_t, robot_info::HumanoidRobotInfo)
     τ[:] = 0
     for i = 1 : msg.num_joints
         jointid = findjointid(robot_info, findactuator(robot_info, msg.joint_names[i]))
@@ -160,47 +109,10 @@ function compute_torques!(τ::AbstractVector, Δt::Number, state::MechanismState
             msg.ff_const[i])
         joint_state = JointState(configuration(state, jointid)[1], velocity(state, jointid)[1], τprev[velocity_ind])
         joint_state_des = JointState(msg.position[i], msg.velocity[i], msg.effort[i])
+        # TODO: msg.k_effort[i]?
         τ[velocity_ind] = command_effort(gains, joint_state, joint_state_des, Δt)
     end
     τ
-end
-
-function publish_robot_state(controller::LCMController, t::Number, state::MechanismState)
-    set!(controller.robot_state_msg, controller.result, controller.robot_info, controller.τprev, t, state)
-    encode(controller.encodebuffer, controller.robot_state_msg)
-    bytes = take!(controller.encodebuffer)
-    publish(controller.lcm, controller.robot_state_channel, bytes)
-end
-
-struct NoCommandError <: Exception end
-Base.showerror(io::IO, e::NoCommandError) = print(io, "Didn't receive a command message.")
-
-function (controller::LCMController)(τ::AbstractVector, t::Number, state::MechanismState)
-    # send state info on first tick to get things started
-    if t == 0 # TODO: consider creating a separate flag in the controller for doing this
-        publish_robot_state(controller, t, state)
-        sleep(0.5); publish_robot_state(controller, t, state) # send a second time to work around a bug in the controller
-    end
-
-    # process command
-    handle(controller.lcm, Dates.Second(1))
-    controller.new_command[] || throw(NoCommandError())
-    compute_torques!(τ, controller.tprev[] - t, state, controller.τprev, controller.atlas_command_msg, controller.robot_info)
-    τ .-= 0.1 .* velocity(state) # FIXME: parse damping from URDF
-    controller.new_command[] = false
-    controller.tprev[] = t
-    controller.τprev[:] = τ
-
-    # send state info
-    publish_robot_state(controller, t, state)
-    τ
-end
-
-function RigidBodySim.PeriodicController(Δt::Number, controller::LCMController) # TODO: switch order?
-    initialize = let controller = controller
-        (c, t, u, integrator) -> initialize!(controller)
-    end
-    PeriodicController(zeros(controller.τprev), Δt, controller; initialize = initialize)
 end
 
 function set!(state::MechanismState, msg::robot_state_t, robot_info::HumanoidRobotInfo)
@@ -216,7 +128,8 @@ function set!(state::MechanismState, msg::robot_state_t, robot_info::HumanoidRob
     to_body = Transform3D(world_aligned_floating_body_frame, frame_after(floatingjoint), inv(rot))
     angular = SVector(msg.twist.angular_velocity)
     linear = SVector(msg.twist.linear_velocity)
-    twist = Twist(frame_after(floatingjoint), frame_before(floatingjoint), world_aligned_floating_body_frame, angular, linear)
+    twist = Twist(frame_after(floatingjoint), frame_before(floatingjoint), world_aligned_floating_body_frame,
+        angular, linear)
     twist = transform(twist, to_body)
     set_velocity!(state, floatingjoint, twist)
 
@@ -228,4 +141,31 @@ function set!(state::MechanismState, msg::robot_state_t, robot_info::HumanoidRob
         set_velocity!(state, joint, msg.joint_velocity[i])
     end
     state
+end
+
+function set!(msg::atlas_command_t, τ::AbstractVector, t::Float64,
+        state_des::MechanismState, robot_info::HumanoidRobotInfo, desired_controller_period_ms::Integer)
+    msg.utime = floor(Int, t * 1e6)
+    for i = 1 : msg.num_joints
+        # simple torque control for now; really, this method should take a Dict{Actuator, LowLevelJointGains}
+        jointid = findjointid(robot_info, findactuator(robot_info, msg.joint_names[i]))
+        position_ind = range_to_ind(configuration_range(state_des, jointid))
+        velocity_ind = range_to_ind(velocity_range(state_des, jointid))
+        gains = LowLevelJointGains(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0)
+
+        msg.position[i] = configuration(state_des)[position_ind]
+        msg.velocity[i] = configuration(state_des)[velocity_ind]
+        msg.effort[i] = τ[velocity_ind]
+        msg.k_q_p[i] = gains.k_q_p
+        msg.k_q_i[i] = gains.k_q_i
+        msg.k_qd_p[i] = gains.k_qd_p
+        msg.k_f_p[i] = gains.k_f_p
+        msg.ff_qd[i] = gains.ff_qd
+        msg.ff_qd_d[i] = gains.ff_qd_d
+        msg.ff_f_d[i] = gains.ff_f_d
+        msg.ff_const[i] = gains.ff_const
+        msg.k_effort[i] = typemax(UInt8) # TODO: ?
+    end
+    msg.desired_controller_period_ms = desired_controller_period_ms
+    msg
 end

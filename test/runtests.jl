@@ -25,7 +25,7 @@ using RigidBodyDynamics
 using BotCoreLCMTypes
 import HumanoidLCMSim: set!
 
-@testset "robot_side_t -> MechanismState" begin
+@testset "robot_state_t -> MechanismState" begin
     mechanism = Valkyrie().mechanism
     remove_fixed_tree_joints!(mechanism)
     feet = Dict(Sides.left => findbody(mechanism, "leftFoot"), Sides.right => findbody(mechanism, "rightFoot"))
