@@ -1,9 +1,21 @@
 ## Documentation: http://docs.travis-ci.com/user/languages/julia/
 language: julia
-os:
-  - linux
-julia:
-  - 0.6
+matrix:
+  include:
+    - os: linux
+      julia: 0.6
+      env: TESTCMD="xvfb-run julia"
+    - os: linux
+      julia: nightly
+      env: TESTCMD="xvfb-run julia"
+    - os: osx
+      julia: 0.6
+      env: TESTCMD="julia"
+    - os: osx
+      julia: nightly
+      env: TESTCMD="julia"
+  allow_failures:
+    - julia: nightly
 branches:
   only:
     - master
@@ -12,12 +24,12 @@ notifications:
   email: false
 git:
   depth: 99999999
-
-## uncomment the following lines to override the default test script
+before_script:
+ - julia -e 'Pkg.add("JSExpr"); Pkg.checkout("JSExpr")'
 script:
- - julia -e 'Pkg.clone(pwd()); Pkg.checkout("RigidBodyDynamics"); Pkg.checkout("RigidBodySim"); Pkg.build("HumanoidLCMSim"); Pkg.test("HumanoidLCMSim"; coverage=true)'
+- $TESTCMD -e 'Pkg.clone(pwd()); Pkg.build("HumanoidLCMSim"); Pkg.test("HumanoidLCMSim"; coverage=true)'
 after_success:
   # push coverage results to Coveralls
-  - julia -e 'cd(Pkg.dir("HumanoidLCMSim")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
+  # - julia -e 'cd(Pkg.dir("HumanoidLCMSim")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
   # push coverage results to Codecov
   - julia -e 'cd(Pkg.dir("HumanoidLCMSim")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'

@@ -66,6 +66,6 @@ using HumanoidLCMSim
 end
 end # module
 
-# include("notebooks.jl")
+include("notebooks.jl")
 
 end # module
