@@ -35,11 +35,20 @@ function LCMControlPublisher(robot_info::HumanoidRobotInfo, controller::C;
         subscribe(lcm, robot_state_channel, (channel, data) -> handle_robot_state_msg(publisher, data))
     end
 
-    @async while true
-        handle(lcm)
-    end
-
     publisher
+end
+
+function handle(publisher::LCMControlPublisher; async=true)
+    lcm = publisher.lcm
+    if async
+        @async while true
+            LCMCore.handle(lcm)
+        end
+    else
+        while true
+            LCMCore.handle(lcm)
+        end
+    end
 end
 
 function handle_robot_state_msg(publisher::LCMControlPublisher, data::Vector{UInt8})
@@ -50,7 +59,7 @@ function handle_robot_state_msg(publisher::LCMControlPublisher, data::Vector{UIn
     publisher.controller(publisher.τ, t, publisher.state)
     state_des = publisher.state # TODO
     set!(publisher.atlas_command_msg, publisher.τ, t, state_des, publisher.robot_info, publisher.desired_controller_period_ms)
-    encode(publisher.encodebuffer, publisher.atlas_command_msg) # TODO: allocates
+    encode(publisher.encodebuffer, publisher.atlas_command_msg) # TODO: allocates a lot
     bytes = take!(publisher.encodebuffer) # TODO: allocates
     publish(publisher.lcm, publisher.robot_command_channel, bytes)
     nothing

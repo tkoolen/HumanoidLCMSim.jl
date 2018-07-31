@@ -10,7 +10,8 @@ export # types
     Side
 
 export # functions
-    parse_actuators
+    parse_actuators,
+    handle
 
 export # submodules
     Sides,
