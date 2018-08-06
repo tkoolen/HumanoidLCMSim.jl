@@ -29,6 +29,9 @@ using BufferedStreams
 using LightXML
 using BotCoreLCMTypes
 import DataStructures: OrderedDict
+using Reexport
+
+@reexport using JSExpr # FIXME: needed because of https://github.com/JuliaGizmos/JSExpr.jl/issues/13
 
 include("gains.jl")
 include("sides.jl")

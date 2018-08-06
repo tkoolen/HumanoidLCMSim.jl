@@ -13,8 +13,7 @@ using DiffEqBase: CallbackSet, solve, init
 using OrdinaryDiffEq: Tsit5
 using DataStructures: OrderedDict
 using MechanismGeometries: URDFVisuals
-using JSExpr # FIXME: https://github.com/JunoLab/Blink.jl/issues/134
-using Blink: Window
+using JSExpr, Blink # FIXME: https://github.com/JunoLab/Blink.jl/issues/134
 
 function addflatground!(mechanism::Mechanism)
     frame = root_frame(mechanism)
