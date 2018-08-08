@@ -25,7 +25,7 @@ using DiffEqCallbacks
 using StaticArrays
 using Rotations
 using LCMCore
-using BufferedStreams
+using FastIOBuffers
 using LightXML
 using BotCoreLCMTypes
 import DataStructures: OrderedDict

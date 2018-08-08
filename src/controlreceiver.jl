@@ -7,7 +7,8 @@ struct LCMControlReceiver
     robot_state_channel::String
     robot_state_msg::robot_state_t
     atlas_command_msg::atlas_command_t
-    encodebuffer::IOBuffer
+    encodebuffer::FastWriteBuffer
+    decodebuffer::FastReadBuffer
     new_command::Base.RefValue{Bool}
 end
 
@@ -23,9 +24,10 @@ function LCMControlReceiver(robot_info::HumanoidRobotInfo;
     lcm = LCM()
     robot_state_msg = robot_state_t()
     atlas_command_msg = atlas_command_t()
-    encodebuffer = IOBuffer(false, true)
+    encodebuffer = FastWriteBuffer()
+    decodebuffer = FastReadBuffer()
     receiver = LCMControlReceiver(result, tprev, τprev, robot_info, lcm, robot_state_channel,
-        robot_state_msg, atlas_command_msg, encodebuffer, Ref(false))
+        robot_state_msg, atlas_command_msg, encodebuffer, decodebuffer, Ref(false))
 
     for joint in tree_joints(mechanism)
         num_velocities(joint) == 1 || continue
@@ -49,9 +51,9 @@ function initialize!(receiver::LCMControlReceiver)
 end
 
 function handle_robot_command_msg(receiver::LCMControlReceiver, data::Vector{UInt8})
-    io = BufferedInputStream(data)
+    setdata!(receiver.decodebuffer, data)
     msg = receiver.atlas_command_msg
-    decode!(msg, io)
+    decode!(msg, receiver.decodebuffer)
     receiver.new_command[] = true
 end
 
