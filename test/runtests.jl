@@ -1,8 +1,16 @@
 module HumanoidLCMSimTests
 
 module SideTest
-using Compat.Test
+using Compat.Test, Compat.Random
 using HumanoidLCMSim
+
+if isdefined(Random, :seed!)
+    using Random: seed!
+else
+    const seed! = srand
+end
+
+seed!(1)
 
 @testset "side" begin
     @test -Sides.left == Sides.right
