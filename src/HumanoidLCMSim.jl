@@ -4,12 +4,14 @@ module HumanoidLCMSim
 
 export # types
     HumanoidRobotInfo,
-    LCMController,
+    LCMControlReceiver,
+    LCMControlPublisher,
     Actuator,
     Side
 
 export # functions
-    parse_actuators
+    parse_actuators,
+    handle
 
 export # submodules
     Sides,
@@ -27,14 +29,20 @@ using BufferedStreams
 using LightXML
 using BotCoreLCMTypes
 import DataStructures: OrderedDict
+using Reexport
+
+@reexport using JSExpr # FIXME: needed because of https://github.com/JuliaGizmos/JSExpr.jl/issues/13
 
 include("gains.jl")
 include("sides.jl")
 
 using .Sides
 
+include("util.jl")
 include("humanoid_robot_info.jl")
-include("control.jl")
+include("lcm_interop.jl")
+include("controlreceiver.jl")
+include("controlpublisher.jl")
 
 include("atlas.jl")
 

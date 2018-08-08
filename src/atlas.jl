@@ -13,7 +13,7 @@ using DiffEqBase: CallbackSet, solve, init
 using OrdinaryDiffEq: Tsit5
 using DataStructures: OrderedDict
 using MechanismGeometries: URDFVisuals
-using Blink: Window
+using JSExpr, Blink # FIXME: https://github.com/JunoLab/Blink.jl/issues/134
 
 function addflatground!(mechanism::Mechanism)
     frame = root_frame(mechanism)
@@ -52,8 +52,8 @@ function initialize!(state::MechanismState, info::HumanoidRobotInfo)
     state
 end
 
-function send_init_messages(state::MechanismState, lcmcontroller::LCMController)
-    HumanoidLCMSim.publish_robot_state(lcmcontroller, 0.0, state)
+function send_init_messages(state::MechanismState, receiver::LCMControlReceiver)
+    HumanoidLCMSim.publish_robot_state(receiver, 0.0, state)
     utime = HumanoidLCMSim.utime_t()
     lcm = LCM()
     println("Publishing START_MIT_STAND")
@@ -81,17 +81,17 @@ function make_callback(state::MechanismState, headless::Bool, max_rate)
     callback
 end
 
-function simulate(dynamics::Dynamics, state0, callback)
-    problem = ODEProblem(dynamics, state0, (0., Inf), callback = callback)
-    integrator = init(problem, Tsit5(); abs_tol = 1e-10, dtmin = 0.0)
-    solve!(integrator)
-    integrator.sol
+function simulate(dynamics::Dynamics, state0, final_time, callback)
+    problem = ODEProblem(dynamics, state0, (0., final_time), callback = callback)
+    integrator = init(problem, Tsit5(); abs_tol = 1e-8, dt = 1e-6, dtmin = 0.0)
+    walltime = @elapsed solve!(integrator)
+    integrator.sol, walltime
 end
 
 """
     run(; controlΔt::Float64 = 1 / 300; headless = false)
 
-Start a simulation of the Atlas robot, controlled using a `HumanoidLCMSim.LCMController` running
+Start a simulation of the Atlas robot, controlled using a `HumanoidLCMSim.LCMControlReceiver` running
 at a rate of `1 / controlΔt` Hertz.
 
 # Examples
@@ -102,16 +102,16 @@ Default usage:
 using HumanoidLCMSim; AtlasSim.run()
 ```
 """
-function run(; controlΔt::Float64 = 1 / 300, headless = false, max_rate = Inf)
-    BLAS.set_num_threads(3) # leave some cores for other processes
+function run(; final_time = Inf, controlΔt::Float64 = 1 / 300, headless = false, max_rate = Inf)
+    BLAS.set_num_threads(max(floor(Int, Sys.CPU_CORES / 2  - 1), 1)) # leave some cores for other processes
     mechanism = addflatground!(AtlasRobot.mechanism())
     info = atlasrobotinfo(mechanism)
     state0 = MechanismState(mechanism)
     initialize!(state0, info)
-    lcmcontroller = LCMController(info;
+    receiver = LCMControlReceiver(info;
         robot_state_channel="EST_ROBOT_STATE",
         robot_command_channel="ATLAS_COMMAND")
-    pcontroller = PeriodicController(controlΔt, lcmcontroller)
+    pcontroller = PeriodicController(controlΔt, receiver)
     control! = let pcontroller = pcontroller
         function (τ, t, state)
             pcontroller(τ, t, state)
@@ -121,11 +121,11 @@ function run(; controlΔt::Float64 = 1 / 300, headless = false, max_rate = Inf)
             τ
         end
     end
-    send_init_messages(state0, lcmcontroller)
+    send_init_messages(state0, receiver)
     callback = CallbackSet(make_callback(state0, headless, max_rate), PeriodicCallback(pcontroller))
-    walltime = @elapsed sol = simulate(Dynamics(mechanism, control!), state0, callback)
+    sol, walltime = simulate(Dynamics(mechanism, control!), state0, final_time, callback)
     simtime = sol.t[end]
-    println("Simulated $simtime s in $walltime s ($(simtime / walltime) x realtime).")
+    println("Simulated $simtime s in $walltime s ($(simtime / walltime) × realtime).")
     sol
 end
 
