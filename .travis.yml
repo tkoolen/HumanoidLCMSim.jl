@@ -25,7 +25,7 @@ notifications:
 git:
   depth: 99999999
 before_script:
- - julia -e 'Pkg.clone("https://github.com/tkoolen/SimpleQP.jl"); Pkg.clone("https://github.com/tkoolen/QPControl.jl.git")'
+ - julia -e 'Pkg.clone("https://github.com/tkoolen/Parametron.jl"); Pkg.clone("https://github.com/tkoolen/QPControl.jl.git")'
 script:
 - $TESTCMD -e 'Pkg.clone(pwd()); Pkg.build("HumanoidLCMSim"); Pkg.test("HumanoidLCMSim"; coverage=true)'
 after_success:
