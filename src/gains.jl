@@ -16,13 +16,13 @@ struct JointState{T}
 end
 
 function command_effort(gains::LowLevelJointGains, state::JointState, state_des::JointState, Δt::Number)
-    effort =
-        gains.k_q_p * (state_des.position - state.position) +
-        gains.k_q_i * (state_des.position - state.position) * Δt +
-        gains.k_qd_p * (state_des.velocity - state.velocity) +
-        gains.k_f_p * (state_des.effort - state.effort) +
-        gains.ff_qd * state.velocity +
-        gains.ff_qd_d * state_des.velocity +
-        gains.ff_f_d * state_des.effort +
-        gains.ff_const
+    effort = gains.ff_const
+    effort += gains.k_q_p * (state_des.position - state.position)
+    effort += gains.k_q_i * (state_des.position - state.position) * Δt
+    effort += gains.k_qd_p * (state_des.velocity - state.velocity)
+    effort += gains.k_f_p * (state_des.effort - state.effort)
+    effort += gains.ff_qd * state.velocity
+    effort += gains.ff_qd_d * state_des.velocity
+    effort += gains.ff_f_d * state_des.effort
+    effort
 end

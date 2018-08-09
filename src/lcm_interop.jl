@@ -71,13 +71,15 @@ function set!(msg::robot_state_t, result::DynamicsResult, robot_info::HumanoidRo
     set!(msg.twist, twist)
 
     # state info for actuated joints
-    i = 1
-    for joint in tree_joints(robot_info.mechanism)
-        num_velocities(joint) == 1 || continue
-        velocity_index = range_to_ind(velocity_range(state, joint))
-        msg.joint_position[i] = configuration(state, joint)[1]
-        msg.joint_velocity[i] = velocity(state, joint)[1]
-        msg.joint_effort[i] = τprev[velocity_index]
+    q = configuration(state)
+    v = velocity(state)
+    for i = 1 : msg.num_joints
+        actuator = robot_info.actuators[i]
+        position_ind = range_to_ind(configuration_range(state, actuator.jointid))
+        velocity_ind = range_to_ind(velocity_range(state, actuator.jointid))
+        msg.joint_position[i] = q[position_ind]
+        msg.joint_velocity[i] = v[velocity_ind]
+        msg.joint_effort[i] = τprev[velocity_ind]
         i += 1
     end
 
@@ -94,10 +96,13 @@ end
 
 function set!(τ::AbstractVector, Δt::Number, state::MechanismState, τprev::AbstractVector,
         msg::atlas_command_t, robot_info::HumanoidRobotInfo)
-    τ[:] = 0
+    τ .= 0
+    q = configuration(state)
+    v = velocity(state)
     for i = 1 : msg.num_joints
-        jointid = findjointid(robot_info, findactuator(robot_info, msg.joint_names[i]))
-        velocity_ind = range_to_ind(velocity_range(state, jointid))
+        actuator = findactuator(robot_info, msg.joint_names[i])
+        position_ind = range_to_ind(configuration_range(state, actuator.jointid))
+        velocity_ind = range_to_ind(velocity_range(state, actuator.jointid))
         gains = LowLevelJointGains(
             msg.k_q_p[i],
             msg.k_q_i[i],
@@ -107,10 +112,10 @@ function set!(τ::AbstractVector, Δt::Number, state::MechanismState, τprev::Ab
             msg.ff_qd_d[i],
             msg.ff_f_d[i],
             msg.ff_const[i])
-        joint_state = JointState(configuration(state, jointid)[1], velocity(state, jointid)[1], τprev[velocity_ind])
+        joint_state = JointState(q[position_ind], v[velocity_ind], τprev[velocity_ind])
         joint_state_des = JointState(msg.position[i], msg.velocity[i], msg.effort[i])
-        # TODO: msg.k_effort[i]?
-        τ[velocity_ind] = command_effort(gains, joint_state, joint_state_des, Δt)
+        torque_scale = msg.k_effort[i] / typemax(UInt8)
+        τ[velocity_ind] = torque_scale * command_effort(gains, joint_state, joint_state_des, Δt)
     end
     τ
 end
@@ -136,7 +141,7 @@ function set!(state::MechanismState, msg::robot_state_t, robot_info::HumanoidRob
     msg.num_joints == length(robot_info.revolutejoints) || throw(ArgumentError("Number of joints incorrect."))
     for i = 1 : msg.num_joints
         joint = robot_info.revolutejoints[i]
-        @boundscheck msg.joint_name[i] == string(joint) || throw(ArgumentError("Joint name mismatch."))
+        @boundscheck msg.joint_name[i] == joint.name || throw(ArgumentError("Joint name mismatch."))
         set_configuration!(state, joint, msg.joint_position[i])
         set_velocity!(state, joint, msg.joint_velocity[i])
     end
@@ -147,13 +152,12 @@ function set!(msg::atlas_command_t, τ::AbstractVector, t::Float64,
         state_des::MechanismState, robot_info::HumanoidRobotInfo, desired_controller_period_ms::Integer)
         msg.utime = floor(Int, t * 1e6)
     q = configuration(state_des)
-    v = configuration(state_des)
+    v = velocity(state_des)
     for i = 1 : msg.num_joints
         # simple torque control for now; really, this method should take a Dict{Actuator, LowLevelJointGains}
         actuator = findactuator(robot_info, msg.joint_names[i])
-        jointid = findjointid(robot_info, actuator)
-        position_ind = range_to_ind(configuration_range(state_des, jointid))
-        velocity_ind = range_to_ind(velocity_range(state_des, jointid))
+        position_ind = range_to_ind(configuration_range(state_des, actuator.jointid))
+        velocity_ind = range_to_ind(velocity_range(state_des, actuator.jointid))
         gains = LowLevelJointGains(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0)
 
         msg.position[i] = q[position_ind]
