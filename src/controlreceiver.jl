@@ -29,7 +29,7 @@ function LCMControlReceiver(robot_info::HumanoidRobotInfo;
 
     for joint in tree_joints(mechanism)
         num_velocities(joint) == 1 || continue
-        push!(robot_state_msg.joint_name, string(joint))
+        push!(robot_state_msg.joint_name, joint.name)
     end
     robot_state_msg.num_joints = length(robot_state_msg.joint_name)
     resize!(robot_state_msg)
@@ -44,7 +44,7 @@ end
 
 function initialize!(receiver::LCMControlReceiver)
     receiver.tprev[] = 0
-    receiver.τprev[:] = 0
+    receiver.τprev .= 0
     nothing
 end
 
@@ -78,7 +78,7 @@ function (receiver::LCMControlReceiver)(τ::AbstractVector, t::Number, state::Me
     set!(τ, receiver.tprev[] - t, state, receiver.τprev, receiver.atlas_command_msg, receiver.robot_info)
     receiver.new_command[] = false
     receiver.tprev[] = t
-    receiver.τprev[:] = τ
+    receiver.τprev .= τ
 
     # send state info
     publish_robot_state(receiver, t, state)

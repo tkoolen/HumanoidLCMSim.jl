@@ -23,15 +23,14 @@ function addflatground!(mechanism::Mechanism)
 end
 
 function atlasrobotinfo(mechanism::Mechanism)
-    actuatorconfig = OrderedDict{Actuator, JointID}(
-        Actuator(string(j)) => JointID(j) for j in  tree_joints(mechanism) if num_positions(j) == 1)
+    actuators = [Actuator(string(j), JointID(j)) for j in tree_joints(mechanism) if num_positions(j) == 1]
     feet = Dict(
         Sides.left => findbody(mechanism, "l_foot"),
         Sides.right => findbody(mechanism, "r_foot"))
     hands = Dict(
         Sides.left => findbody(mechanism, "l_hand"),
         Sides.right => findbody(mechanism, "r_hand"))
-    HumanoidRobotInfo(mechanism, feet, hands, actuatorconfig)
+    HumanoidRobotInfo(mechanism, feet, hands, actuators)
 end
 
 function initialize!(state::MechanismState, info::HumanoidRobotInfo)

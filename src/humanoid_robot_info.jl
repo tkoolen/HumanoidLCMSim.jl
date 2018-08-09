@@ -1,5 +1,6 @@
 struct Actuator
     name::String
+    jointid::JointID
 end
 
 function parse_actuators(mechanism::Mechanism{T}, urdffile::String) where T
@@ -8,8 +9,7 @@ function parse_actuators(mechanism::Mechanism{T}, urdffile::String) where T
     @assert LightXML.name(xroot) == "robot"
 
     xml_transmissions = get_elements_by_tagname(xroot, "transmission")
-    actuatorconfig = OrderedDict{Actuator, JointID}()
-
+    actuators = Actuator[]
     for joint in tree_joints(mechanism) # order matters
         num_velocities(joint) == 0 && continue
         for xml_transmission in xml_transmissions
@@ -18,13 +18,12 @@ function parse_actuators(mechanism::Mechanism{T}, urdffile::String) where T
                 xml_actuator = find_element(xml_transmission, "actuator")
                 xml_reduction = find_element(xml_actuator, "mechanicalReduction")
                 xml_reduction == nothing || @assert parse(content(xml_reduction)) == 1
-                actuator = Actuator(attribute(xml_actuator, "name"))
-                actuatorconfig[actuator] = JointID(joint)
+                push!(actuators, Actuator(attribute(xml_actuator, "name"), JointID(joint)))
             end
         end
     end
 
-    actuatorconfig
+    actuators
 end
 
 struct HumanoidRobotInfo{T}
@@ -34,7 +33,6 @@ struct HumanoidRobotInfo{T}
     floatingjoint::Joint{T, QuaternionFloating{T}}
     floatingbody::RigidBody{T}
     world_aligned_floating_body_frame::CartesianFrame3D
-    actuatorconfig::OrderedDict{Actuator, JointID}
     actuators::Vector{Actuator}
     revolutejoints::Vector{Joint{T, Revolute{T}}}
 
@@ -42,7 +40,7 @@ struct HumanoidRobotInfo{T}
             mechanism::Mechanism{T},
             feet::Associative{Side, RigidBody{T}},
             hands::Associative{Side, RigidBody{T}},
-            actuatorconfig::OrderedDict{Actuator, JointID}) where {T}
+            actuators::Vector{Actuator}) where {T}
         sides = instances(Side)
         @assert isempty(setdiff(keys(feet), sides))
         @assert isempty(setdiff(keys(hands), sides))
@@ -52,8 +50,7 @@ struct HumanoidRobotInfo{T}
         floatingbody = successor(floatingjoint, mechanism)
         world_aligned_floating_body_frame = CartesianFrame3D("world_aligned_floating_body_frame")
         revolutejoints = Joint{T, Revolute{T}}[j for j in tree_joints(mechanism) if joint_type(j) isa Revolute{T}]
-        actuators = collect(keys(actuatorconfig))
-        new{T}(mechanism, feet, hands, floatingjoint, floatingbody, world_aligned_floating_body_frame, actuatorconfig, actuators, revolutejoints)
+        new{T}(mechanism, feet, hands, floatingjoint, floatingbody, world_aligned_floating_body_frame, actuators, revolutejoints)
     end
 end
 
@@ -61,10 +58,8 @@ num_actuators(info::HumanoidRobotInfo) = length(info.actuators)
 actuators(info::HumanoidRobotInfo) = info.actuators
 
 function findactuator(info::HumanoidRobotInfo, name::String)
-    for actuator in actuators(info)
+    for actuator in info.actuators
         actuator.name == name && return actuator
     end
     throw(KeyError(name))
 end
-
-findjointid(info::HumanoidRobotInfo, actuator::Actuator) = info.actuatorconfig[actuator]

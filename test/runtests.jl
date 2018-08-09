@@ -51,7 +51,7 @@ import HumanoidLCMSim: set!
     result = DynamicsResult(mechanism)
     dynamics!(result, state)
     τprev = similar(velocity(state))
-    τprev[:] = 0
+    τprev .= 0
     t = 1.0
     set!(msg, result, robot_info, τprev, t, state)
     state_back = MechanismState(mechanism)
