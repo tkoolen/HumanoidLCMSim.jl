@@ -176,3 +176,44 @@ function set!(msg::atlas_command_t, τ::AbstractVector, t::Float64,
     msg.desired_controller_period_ms = desired_controller_period_ms
     msg
 end
+
+# type piracy to avoid allocations when decoding robot_state_t
+@generated function LCMCore.decodefield!(x::robot_state_t, io::IO)
+    field_assignments = Vector{Expr}(undef, fieldcount(x))
+    for (i, fieldname) in enumerate(fieldnames(x))
+        F = fieldtype(x, fieldname)
+        field_assignments[i] = if fieldname == :joint_name
+            quote
+                if isempty(x.joint_name)
+                    # decode as normal the first time
+                    LCMCore.resizearrayfield!(x, $(Val(fieldname)), $F)
+                    LCMCore.decodefield!(x.joint_name, io)
+                else
+                    # check that bytes match joint names in robot_state_t
+                    @inbounds for name in x.$fieldname
+                        len = ntoh(read(io, UInt32))
+                        length(name) == len - 1 || error("Mismatch in joint_name field.")
+                        for j = 1 : len - 1
+                            name[j] === Char(read(io, UInt8)) || error("Mismatch in joint_name field.")
+                        end
+                        read(io, UInt8) # strip off null
+                    end
+                end
+            end
+        else
+            # just do the normal thing
+            quote
+                $F <: Array && LCMCore.resizearrayfield!(x, $(Val(fieldname)), $F)
+                if LCMCore.decode_in_place($F)
+                    LCMCore.decodefield!(x.$fieldname, io)
+                else
+                    x.$fieldname = LCMCore.decodefield(io, $F)
+                end
+            end
+        end
+    end
+    return quote
+        $(field_assignments...)
+        return x
+    end
+end
