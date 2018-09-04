@@ -3,8 +3,17 @@ RigidBodyDynamics 0.7.0
 RigidBodySim 0.3.0
 LCMCore 0.3.0
 FastIOBuffers 0.0.1
+DiffEqBase
+OrdinaryDiffEq
+DiffEqCallbacks
+StaticArrays
+Rotations
+LightXML
 Compat
 AtlasRobot
-ValkyrieRobot
+MechanismGeometries
 BotCoreLCMTypes
 Reexport
+JSExpr # TODO
+Blink # TODO
+QPControl

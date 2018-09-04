@@ -75,7 +75,7 @@ function (receiver::LCMControlReceiver)(τ::AbstractVector, t::Number, state::Me
     end
 
     # process command
-    LCMCore.handle(receiver.lcm, Dates.Second(1))
+    LCMCore.handle(receiver.lcm, Second(1))
     receiver.new_command[] || throw(NoCommandError())
     set!(τ, receiver.tprev[] - t, state, receiver.τprev, receiver.atlas_command_msg, receiver.robot_info)
     receiver.new_command[] = false
@@ -91,5 +91,5 @@ function RigidBodySim.PeriodicController(Δt::Number, receiver::LCMControlReceiv
     initialize = let receiver = receiver
         (c, t, u, integrator) -> initialize!(receiver)
     end
-    PeriodicController(zeros(receiver.τprev), Δt, receiver; initialize = initialize)
+    PeriodicController(zero(receiver.τprev), Δt, receiver; initialize = initialize)
 end

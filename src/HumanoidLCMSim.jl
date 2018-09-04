@@ -28,8 +28,9 @@ using LCMCore
 using FastIOBuffers
 using LightXML
 using BotCoreLCMTypes
-import DataStructures: OrderedDict
 using Reexport
+
+using Dates: Second
 
 @reexport using JSExpr # FIXME: needed because of https://github.com/JuliaGizmos/JSExpr.jl/issues/13
 

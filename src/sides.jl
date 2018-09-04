@@ -1,5 +1,8 @@
 module Sides
 
+using Compat
+using Compat.Random
+
 export
     Side,
     left,

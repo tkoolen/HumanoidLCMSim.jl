@@ -17,7 +17,7 @@ function parse_actuators(mechanism::Mechanism{T}, urdffile::String) where T
             if string(joint) == attribute(xml_jointref, "name")
                 xml_actuator = find_element(xml_transmission, "actuator")
                 xml_reduction = find_element(xml_actuator, "mechanicalReduction")
-                xml_reduction == nothing || @assert parse(content(xml_reduction)) == 1
+                xml_reduction == nothing || @assert parse(Int, content(xml_reduction)) == 1
                 push!(actuators, Actuator(attribute(xml_actuator, "name"), JointID(joint)))
             end
         end
@@ -38,8 +38,8 @@ struct HumanoidRobotInfo{T}
 
     function HumanoidRobotInfo(
             mechanism::Mechanism{T},
-            feet::Associative{Side, RigidBody{T}},
-            hands::Associative{Side, RigidBody{T}},
+            feet::AbstractDict{Side, RigidBody{T}},
+            hands::AbstractDict{Side, RigidBody{T}},
             actuators::Vector{Actuator}) where {T}
         sides = instances(Side)
         @assert isempty(setdiff(keys(feet), sides))
