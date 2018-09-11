@@ -3,14 +3,14 @@ language: julia
 matrix:
   include:
     - os: linux
-      julia: 0.6
+      julia: 1.0
       env: TESTCMD="xvfb-run julia"
+    - os: osx
+      julia: 1.0
+      env: TESTCMD="julia"
     - os: linux
       julia: nightly
       env: TESTCMD="xvfb-run julia"
-    - os: osx
-      julia: 0.6
-      env: TESTCMD="julia"
     - os: osx
       julia: nightly
       env: TESTCMD="julia"
@@ -25,11 +25,9 @@ notifications:
 git:
   depth: 99999999
 before_script:
- - julia -e 'Pkg.clone("https://github.com/tkoolen/Parametron.jl"); Pkg.clone("https://github.com/tkoolen/QPControl.jl.git")'
+  - julia -e 'import Pkg; repo = Pkg.Types.GitRepo("https://github.com/tkoolen/QPControl.jl", "master"); Pkg.add(Pkg.Types.PackageSpec(repo))'
 script:
-- $TESTCMD -e 'Pkg.clone(pwd()); Pkg.build("HumanoidLCMSim"); Pkg.test("HumanoidLCMSim"; coverage=true)'
+ - $TESTCMD -e 'import Pkg; Pkg.add(Pkg.PackageSpec(path=pwd())); Pkg.build("HumanoidLCMSim"); Pkg.test("HumanoidLCMSim"; coverage=true)'
 after_success:
-  # push coverage results to Coveralls
-  # - julia -e 'cd(Pkg.dir("HumanoidLCMSim")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
   # push coverage results to Codecov
-  - julia -e 'cd(Pkg.dir("HumanoidLCMSim")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
+  - julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'

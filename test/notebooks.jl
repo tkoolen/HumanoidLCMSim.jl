@@ -1,5 +1,5 @@
 module NotebookTest
-using Compat.Test
+using Test
 
 @testset "example notebooks" begin
     notebookdir = joinpath(@__DIR__, "..", "notebooks")
@@ -12,8 +12,7 @@ using Compat.Test
             lowercase(ext) == ".ipynb" || continue
 
             @eval module $(gensym()) # Each notebook is run in its own module.
-            using Compat
-            using Compat.Test
+            using Test
             using NBInclude
             @testset "$($name)" begin
                 @nbinclude($path; regex = r"^((?!\#NBSKIP).)*$"s) # Use #NBSKIP in a cell to skip it during tests.

@@ -1,5 +1,7 @@
 module Sides
 
+using Random
+
 export
     Side,
     left,

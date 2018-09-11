@@ -1,6 +1,6 @@
 module AtlasSim
 
-using Compat
+using LinearAlgebra
 using RigidBodySim
 using HumanoidLCMSim
 using RigidBodyDynamics
@@ -11,9 +11,8 @@ import AtlasRobot
 using LCMCore: LCM, publish
 using DiffEqBase: CallbackSet, solve, init
 using OrdinaryDiffEq: Tsit5
-using DataStructures: OrderedDict
 using MechanismGeometries: URDFVisuals
-using JSExpr, Blink # FIXME: https://github.com/JunoLab/Blink.jl/issues/134
+using Blink: Window
 
 function addflatground!(mechanism::Mechanism)
     frame = root_frame(mechanism)
@@ -74,7 +73,7 @@ function make_callback(state::MechanismState, headless::Bool, max_rate)
         visuals = URDFVisuals(AtlasRobot.urdfpath(); package_path = [AtlasRobot.packagepath()])
         gui = GUI(state.mechanism, visuals)
         open(gui)
-        Compat.copyto!(gui.visualizer, state)
+        copyto!(gui.visualizer, state)
         callback = CallbackSet(callback, CallbackSet(gui))
     end
     callback
@@ -102,7 +101,7 @@ using HumanoidLCMSim; AtlasSim.run()
 ```
 """
 function run(; final_time = Inf, controlΔt::Float64 = 1 / 300, headless = false, max_rate = Inf)
-    BLAS.set_num_threads(max(floor(Int, Sys.CPU_CORES / 2  - 1), 1)) # leave some cores for other processes
+    BLAS.set_num_threads(max(floor(Int, Sys.CPU_THREADS / 2  - 1), 1)) # leave some cores for other processes
     mechanism = addflatground!(AtlasRobot.mechanism())
     info = atlasrobotinfo(mechanism)
     state0 = MechanismState(mechanism)

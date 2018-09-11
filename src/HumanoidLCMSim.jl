@@ -17,7 +17,6 @@ export # submodules
     Sides,
     AtlasSim
 
-using Compat
 using RigidBodySim
 using RigidBodyDynamics
 using OrdinaryDiffEq
@@ -28,10 +27,8 @@ using LCMCore
 using FastIOBuffers
 using LightXML
 using BotCoreLCMTypes
-import DataStructures: OrderedDict
-using Reexport
 
-@reexport using JSExpr # FIXME: needed because of https://github.com/JuliaGizmos/JSExpr.jl/issues/13
+using Dates: Second
 
 include("gains.jl")
 include("sides.jl")

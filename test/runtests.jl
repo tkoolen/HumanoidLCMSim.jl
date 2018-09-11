@@ -1,7 +1,7 @@
 module HumanoidLCMSimTests
 
 module SideTest
-using Compat.Test, Compat.Random
+using Test, Random
 using HumanoidLCMSim
 
 if isdefined(Random, :seed!)
@@ -26,7 +26,8 @@ end # module
 
 
 module ControlTest
-using Compat.Test
+using Test
+using Random
 using HumanoidLCMSim
 using ValkyrieRobot
 using RigidBodyDynamics
@@ -58,14 +59,14 @@ import HumanoidLCMSim: set!
     set!(state_back, msg, robot_info)
 
     # terrible precision due to float32:
-    @test configuration(state) ≈ configuration(state_back) atol=1e-7
-    @test velocity(state) ≈ velocity(state_back) atol=1e-7
+    @test configuration(state) ≈ configuration(state_back) atol=1e-6
+    @test velocity(state) ≈ velocity(state_back) atol=1e-6
 end
 end # module
 
 
 module AtlasTest
-using Compat.Test
+using Test
 using HumanoidLCMSim
 
 @testset "atlas" begin
