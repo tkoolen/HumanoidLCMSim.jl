@@ -9,7 +9,6 @@ DiffEqCallbacks
 StaticArrays
 Rotations
 LightXML
-Compat
 AtlasRobot
 MechanismGeometries
 BotCoreLCMTypes

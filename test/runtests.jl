@@ -1,7 +1,7 @@
 module HumanoidLCMSimTests
 
 module SideTest
-using Compat.Test, Compat.Random
+using Test, Random
 using HumanoidLCMSim
 
 if isdefined(Random, :seed!)
@@ -26,8 +26,8 @@ end # module
 
 
 module ControlTest
-using Compat.Test
-using Compat.Random
+using Test
+using Random
 using HumanoidLCMSim
 using ValkyrieRobot
 using RigidBodyDynamics
@@ -66,7 +66,7 @@ end # module
 
 
 module AtlasTest
-using Compat.Test
+using Test
 using HumanoidLCMSim
 
 @testset "atlas" begin

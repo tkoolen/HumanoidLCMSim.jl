@@ -1,7 +1,6 @@
 module Sides
 
-using Compat
-using Compat.Random
+using Random
 
 export
     Side,

@@ -17,7 +17,6 @@ export # submodules
     Sides,
     AtlasSim
 
-using Compat
 using RigidBodySim
 using RigidBodyDynamics
 using OrdinaryDiffEq
