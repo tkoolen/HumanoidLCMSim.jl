@@ -50,7 +50,7 @@ function initialize!(receiver::LCMControlReceiver)
     nothing
 end
 
-function handle_robot_command_msg(receiver::LCMControlReceiver, data::Vector{UInt8})
+function handle_robot_command_msg(receiver::LCMControlReceiver, data::AbstractVector{UInt8})
     setdata!(receiver.decodebuffer, data)
     msg = receiver.atlas_command_msg
     decode!(msg, receiver.decodebuffer)

@@ -49,12 +49,12 @@ function handle(publisher::LCMControlPublisher; async=true)
         end
     else
         while true
-            LCMCore.handle(lcm)
+            LCMCore.lcm_handle(lcm)
         end
     end
 end
 
-function handle_robot_state_msg(publisher::LCMControlPublisher, data::Vector{UInt8})
+function handle_robot_state_msg(publisher::LCMControlPublisher, data::AbstractVector{UInt8})
     setdata!(publisher.decodebuffer, data)
     decode!(publisher.robot_state_msg, publisher.decodebuffer)
     set!(publisher.state, publisher.robot_state_msg, publisher.robot_info)

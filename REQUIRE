@@ -9,8 +9,10 @@ DiffEqCallbacks
 StaticArrays
 Rotations
 LightXML
-AtlasRobot
+AtlasRobot 0.1.0
 MechanismGeometries
 BotCoreLCMTypes
 QPControl
 Blink
+MathOptInterface
+OSQP
