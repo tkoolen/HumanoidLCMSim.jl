@@ -1,4 +1,4 @@
-julia 0.6
+julia 0.7
 RigidBodyDynamics 0.7.0
 RigidBodySim 0.3.0
 LCMCore 0.3.0
@@ -13,7 +13,5 @@ Compat
 AtlasRobot
 MechanismGeometries
 BotCoreLCMTypes
-Reexport
-JSExpr # TODO
-Blink # TODO
 QPControl
+Blink

@@ -13,7 +13,7 @@ using LCMCore: LCM, publish
 using DiffEqBase: CallbackSet, solve, init
 using OrdinaryDiffEq: Tsit5
 using MechanismGeometries: URDFVisuals
-using JSExpr, Blink # FIXME: https://github.com/JunoLab/Blink.jl/issues/134
+using Blink: Window
 
 function addflatground!(mechanism::Mechanism)
     frame = root_frame(mechanism)
