@@ -67,14 +67,32 @@ end # module
 
 module AtlasTest
 using Test
+using LinearAlgebra
 using HumanoidLCMSim
+using RigidBodyDynamics
+using AtlasRobot
 
-@testset "atlas" begin
+@testset "no controller" begin
     # just make sure we get all the way to simulating:
     @test_throws HumanoidLCMSim.NoCommandError AtlasSim.run(headless = true)
 end
-end # module
 
-include("notebooks.jl")
+@testset "standing controller" begin
+    # run controller
+    AtlasControl.run(async=true)
+
+    # run simulation
+    sol = AtlasSim.run(controlΔt = 1 / 500, final_time = 5.0);
+
+    # checks
+    mechanism = AtlasRobot.mechanism(add_flat_ground=true)
+    finalstate = MechanismState(mechanism)
+    copyto!(finalstate, sol.u[end])
+    @test sol.retcode == :Success
+    @test center_of_mass(finalstate).v[3] ≈ 1.1 atol=2e-2
+    @test norm(velocity(finalstate)) ≈ 0 atol=5e-3
+end
+
+end # module
 
 end # module

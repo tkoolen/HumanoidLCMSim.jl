@@ -15,7 +15,8 @@ export # functions
 
 export # submodules
     Sides,
-    AtlasSim
+    AtlasSim,
+    AtlasControl
 
 using RigidBodySim
 using RigidBodyDynamics
@@ -41,6 +42,7 @@ include("lcm_interop.jl")
 include("controlreceiver.jl")
 include("controlpublisher.jl")
 
-include("atlas.jl")
+include("atlassim.jl")
+include("atlascontrol.jl")
 
 end # module

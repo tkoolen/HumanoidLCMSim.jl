@@ -14,13 +14,6 @@ using OrdinaryDiffEq: Tsit5
 using MechanismGeometries: URDFVisuals
 using Blink: Window
 
-function addflatground!(mechanism::Mechanism)
-    frame = root_frame(mechanism)
-    ground = HalfSpace3D(Point3D(frame, 0., 0., 0.), FreeVector3D(frame, 0., 0., 1.))
-    add_environment_primitive!(mechanism, ground)
-    mechanism
-end
-
 function atlasrobotinfo(mechanism::Mechanism)
     actuators = [Actuator(string(j), JointID(j)) for j in tree_joints(mechanism) if num_positions(j) == 1]
     feet = Dict(
@@ -32,29 +25,11 @@ function atlasrobotinfo(mechanism::Mechanism)
     HumanoidRobotInfo(mechanism, feet, hands, actuators)
 end
 
-function initialize!(state::MechanismState, info::HumanoidRobotInfo)
-    mechanism = state.mechanism
-    zero!(state)
-    kneebend = 1.1
-    hipbendextra = 0.1
-    for sideprefix in ('l', 'r')
-        knee = findjoint(mechanism, "$(sideprefix)_leg_kny")
-        hippitch = findjoint(mechanism, "$(sideprefix)_leg_hpy")
-        anklepitch = findjoint(mechanism, "$(sideprefix)_leg_aky")
-        set_configuration!(state, knee, [kneebend])
-        set_configuration!(state, hippitch, [-kneebend / 2 + hipbendextra])
-        set_configuration!(state, anklepitch, [-kneebend / 2 - hipbendextra])
-    end
-    floatingjoint = first(out_joints(root_body(mechanism), mechanism))
-    set_configuration!(state, floatingjoint, [1; 0; 0; 0; 0; 0; 0.85])
-    state
-end
-
 function send_init_messages(state::MechanismState, receiver::LCMControlReceiver)
     HumanoidLCMSim.publish_robot_state(receiver, 0.0, state)
     utime = HumanoidLCMSim.utime_t()
     lcm = LCM()
-    println("Publishing START_MIT_STAND")
+    @info "Publishing START_MIT_STAND."
     publish(lcm, "START_MIT_STAND", utime)
     sleep(2)
     nothing
@@ -82,6 +57,7 @@ end
 function simulate(dynamics::Dynamics, state0, final_time, callback)
     problem = ODEProblem(dynamics, state0, (0., final_time), callback = callback)
     integrator = init(problem, Tsit5(); abs_tol = 1e-8, dt = 1e-6, dtmin = 0.0)
+    @info "Starting simulation."
     walltime = @elapsed solve!(integrator)
     integrator.sol, walltime
 end
@@ -102,10 +78,10 @@ using HumanoidLCMSim; AtlasSim.run()
 """
 function run(; final_time = Inf, controlΔt::Float64 = 1 / 300, headless = false, max_rate = Inf)
     BLAS.set_num_threads(max(floor(Int, Sys.CPU_THREADS / 2  - 1), 1)) # leave some cores for other processes
-    mechanism = addflatground!(AtlasRobot.mechanism())
+    mechanism = AtlasRobot.mechanism(add_flat_ground=true)
     info = atlasrobotinfo(mechanism)
     state0 = MechanismState(mechanism)
-    initialize!(state0, info)
+    AtlasRobot.setnominal!(state0)
     receiver = LCMControlReceiver(info;
         robot_state_channel="EST_ROBOT_STATE",
         robot_command_channel="ATLAS_COMMAND")
