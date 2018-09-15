@@ -35,15 +35,17 @@ function send_init_messages(state::MechanismState, receiver::LCMControlReceiver)
     nothing
 end
 
-function make_callback(state::MechanismState, headless::Bool, max_rate)
+function make_callback(state::MechanismState, headless::Bool, max_rate; controls::Bool = true)
     callback = CallbackSet()
     if max_rate < Inf
         callback = CallbackSet(callback, RealtimeRateLimiter(max_rate = max_rate))
     end
     if headless
-        controls = SimulationControls()
-        open(controls, Window())
-        callback = CallbackSet(callback, CallbackSet(controls))
+        if controls
+            controls = SimulationControls()
+            open(controls, Window())
+            callback = CallbackSet(callback, CallbackSet(controls))
+        end
     else
         visuals = URDFVisuals(AtlasRobot.urdfpath(); package_path = [AtlasRobot.packagepath()])
         gui = GUI(state.mechanism, visuals)
@@ -76,7 +78,7 @@ Default usage:
 using HumanoidLCMSim; AtlasSim.run()
 ```
 """
-function run(; final_time = Inf, controlΔt::Float64 = 1 / 300, headless = false, max_rate = Inf)
+function run(; final_time = Inf, controlΔt::Float64 = 1 / 300, headless = false, max_rate = Inf, controls = true)
     BLAS.set_num_threads(max(floor(Int, Sys.CPU_THREADS / 2  - 1), 1)) # leave some cores for other processes
     mechanism = AtlasRobot.mechanism(add_flat_ground=true)
     info = atlasrobotinfo(mechanism)
@@ -96,7 +98,8 @@ function run(; final_time = Inf, controlΔt::Float64 = 1 / 300, headless = false
         end
     end
     send_init_messages(state0, receiver)
-    callback = CallbackSet(make_callback(state0, headless, max_rate), PeriodicCallback(pcontroller))
+    callback = CallbackSet(make_callback(state0, headless, max_rate; controls = controls), 
+        PeriodicCallback(pcontroller))
     sol, walltime = simulate(Dynamics(mechanism, control!), state0, final_time, callback)
     simtime = sol.t[end]
     println("Simulated $simtime s in $walltime s ($(simtime / walltime) × realtime).")
