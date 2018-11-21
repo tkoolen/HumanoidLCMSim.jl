@@ -1,0 +1,30 @@
+name = "HumanoidLCMSim"
+uuid = "edac1f1d-abb5-5e3a-8409-a2d494ecb10f"
+license = "MIT"
+
+[deps]
+AtlasRobot = "436ed74b-f7b6-57fe-bd82-efdbd6c0ab0c"
+Blink = "ad839575-38b3-5650-b840-f874b8c74a25"
+BotCoreLCMTypes = "fce17d29-6d86-5006-bee5-0f8b6f52dd81"
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
+DiffEqCallbacks = "459566f4-90b8-5000-8ac3-15dfb0a30def"
+FastIOBuffers = "6ccb8d0d-f5f8-5ae0-a392-f5aa62729a81"
+LCMCore = "0ea44823-1ff1-5b9a-8293-5fd55a38e746"
+LightXML = "9c8b4983-aa76-5018-a973-4c85ecc9e179"
+MathOptInterface = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
+MechanismGeometries = "931e9471-e8fb-5385-a477-07ad12718aca"
+OSQP = "ab2f91bb-94b4-55e3-9ba0-7f65df51de79"
+OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
+QPControl = "ab1c7e18-f4ed-52ae-aa6d-a660f8b86f43"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+RigidBodyDynamics = "366cf18f-59d5-5db9-a4de-86a9f6786172"
+RigidBodySim = "e61f16d8-a6b7-5689-8d03-627c2b27ebce"
+Rotations = "6038ab10-8711-5258-84ad-4b1120ba62dc"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
