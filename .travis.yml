@@ -1,33 +1,18 @@
-## Documentation: http://docs.travis-ci.com/user/languages/julia/
 language: julia
+os:
+  - osx
+julia:
+  - 0.7
+  - 1.0
+  - nightly
 matrix:
-  include:
-    - os: linux
-      julia: 1.0
-      env: TESTCMD="xvfb-run julia"
-    - os: osx
-      julia: 1.0
-      env: TESTCMD="julia"
-    - os: linux
-      julia: nightly
-      env: TESTCMD="xvfb-run julia"
-    - os: osx
-      julia: nightly
-      env: TESTCMD="julia"
   allow_failures:
-    - julia: nightly
+  - julia: nightly
 branches:
   only:
     - master
     - /^v[0-9]+\.[0-9]+\.[0-9]+$/ # version tags
 notifications:
   email: false
-git:
-  depth: 99999999
-before_script:
-  - julia -e 'import Pkg; repo = Pkg.Types.GitRepo("https://github.com/tkoolen/QPControl.jl", "master"); Pkg.add(Pkg.Types.PackageSpec(repo))'
-script:
- - $TESTCMD -e 'import Pkg; Pkg.add(Pkg.PackageSpec(path=pwd())); Pkg.build("HumanoidLCMSim"); Pkg.test("HumanoidLCMSim"; coverage=true)'
 after_success:
-  # push coverage results to Codecov
-  - julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
+  - julia --project -e 'using Pkg; pkg"add Coverage@0.6.0"; using Coverage; Codecov.submit(Codecov.process_folder())'

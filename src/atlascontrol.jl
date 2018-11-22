@@ -8,7 +8,7 @@ using HumanoidLCMSim
 using MathOptInterface
 
 import OSQP
-using OSQP.MathOptInterfaceOSQP
+using OSQP.MathOptInterfaceOSQP: OSQPSettings
 
 function atlasrobotinfo(mechanism::Mechanism)
     actuators = [Actuator(string(j), JointID(j)) for j in tree_joints(mechanism) if num_positions(j) == 1]
@@ -27,12 +27,12 @@ function run(; async=false)
 
     # create optimizer
     MOI = MathOptInterface
-    optimizer = OSQPOptimizer()
-    MOI.set!(optimizer, OSQPSettings.Verbose(), false)
-    MOI.set!(optimizer, OSQPSettings.EpsAbs(), 1e-5)
-    MOI.set!(optimizer, OSQPSettings.EpsRel(), 1e-5)
-    MOI.set!(optimizer, OSQPSettings.MaxIter(), 5000)
-    MOI.set!(optimizer, OSQPSettings.AdaptiveRhoInterval(), 25) # required for deterministic behavior
+    optimizer = OSQP.Optimizer()
+    MOI.set(optimizer, OSQPSettings.Verbose(), false)
+    MOI.set(optimizer, OSQPSettings.EpsAbs(), 1e-5)
+    MOI.set(optimizer, OSQPSettings.EpsRel(), 1e-5)
+    MOI.set(optimizer, OSQPSettings.MaxIter(), 5000)
+    MOI.set(optimizer, OSQPSettings.AdaptiveRhoInterval(), 25) # required for deterministic behavior
 
     # create low level controller
     info = AtlasSim.atlasrobotinfo(mechanism)

@@ -59,6 +59,8 @@ import HumanoidLCMSim: set!
     set!(state_back, msg, robot_info)
 
     # terrible precision due to float32:
+    principal_value!(state)
+    principal_value!(state_back)
     @test configuration(state) ≈ configuration(state_back) atol=1e-6
     @test velocity(state) ≈ velocity(state_back) atol=1e-6
 end
