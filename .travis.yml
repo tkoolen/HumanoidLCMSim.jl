@@ -2,8 +2,7 @@ language: julia
 os:
   - osx
 julia:
-  - 0.7
-  - 1.0
+  - 1.1
   - nightly
 matrix:
   allow_failures:
@@ -15,4 +14,4 @@ branches:
 notifications:
   email: false
 after_success:
-  - julia --project -e 'using Pkg; pkg"add Coverage@0.6.0"; using Coverage; Codecov.submit(Codecov.process_folder())'
+  - julia --project -e 'using Pkg; pkg"add Coverage"; using Coverage; Codecov.submit(Codecov.process_folder())'

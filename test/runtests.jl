@@ -91,7 +91,7 @@ end
     finalstate = MechanismState(mechanism)
     copyto!(finalstate, sol.u[end])
     @test sol.retcode == :Success
-    @test center_of_mass(finalstate).v[3] ≈ 1.1 atol=2e-2
+    @test center_of_mass(finalstate).v[3] ≈ 1.06 atol=5e-2
     @test norm(velocity(finalstate)) ≈ 0 atol=5e-3
 end
 
